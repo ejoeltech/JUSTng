@@ -1,5 +1,5 @@
-const express = require('express')
-const { dbHelpers } = require('../config/supabase')
+import express from 'express'
+import { dbHelpers } from '../config/supabase.js'
 
 const router = express.Router()
 
@@ -153,10 +153,10 @@ router.get('/detailed', async (req, res) => {
 
     // System information
     detailedHealth.metrics.system = {
-      loadAverage: require('os').loadavg(),
-      totalMemory: require('os').totalmem(),
-      freeMemory: require('os').freemem(),
-      cpus: require('os').cpus().length
+      loadAverage: (await import('os')).default.loadavg(),
+      totalMemory: (await import('os')).default.totalmem(),
+      freeMemory: (await import('os')).default.freemem(),
+      cpus: (await import('os')).default.cpus().length
     }
 
     // Environment variables detailed check
@@ -239,4 +239,4 @@ router.get('/live', (req, res) => {
   })
 })
 
-module.exports = router
+export default router

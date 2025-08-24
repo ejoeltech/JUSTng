@@ -1,8 +1,8 @@
-const express = require('express')
-const { body, validationResult } = require('express-validator')
-const { authenticateToken, requireRole } = require('../middleware/auth')
-const { dbHelpers } = require('../config/supabase')
-const OfflineQueueService = require('../services/offlineQueue')
+import express from 'express'
+import { body, validationResult } from 'express-validator'
+import { authenticateToken, requireRole } from '../middleware/auth.js'
+import { dbHelpers } from '../config/supabase.js'
+import OfflineQueueService from '../services/offlineQueue.js'
 
 const router = express.Router()
 const offlineQueueService = new OfflineQueueService()
@@ -296,4 +296,4 @@ router.patch('/items/:id/status', authenticateToken, requireRole(['admin', 'supe
   }
 })
 
-module.exports = router
+export default router

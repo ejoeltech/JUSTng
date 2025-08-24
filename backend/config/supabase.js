@@ -1,4 +1,4 @@
-const { createClient } = require('@supabase/supabase-js')
+import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL
@@ -181,4 +181,4 @@ const dbHelpers = {
   }
 }
 
-module.exports = { supabase, dbHelpers }
+export { supabase, dbHelpers }

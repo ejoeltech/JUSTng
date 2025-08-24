@@ -1,5 +1,5 @@
-const { dbHelpers } = require('../config/supabase')
-const { v4: uuidv4 } = require('uuid')
+import { dbHelpers } from '../config/supabase.js'
+import { v4 as uuidv4 } from 'uuid'
 
 class OfflineQueueService {
   constructor() {
@@ -380,4 +380,4 @@ class OfflineQueueService {
   }
 }
 
-module.exports = OfflineQueueService
+export default OfflineQueueService
