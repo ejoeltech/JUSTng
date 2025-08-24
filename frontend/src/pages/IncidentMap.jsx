@@ -49,9 +49,6 @@ const IncidentMap = () => {
 
         // TODO: Fetch states and LGAs from API when available
         // For now, use mock data
-        const mockStates = [
-
-        // Mock states and LGAs
         setStates([
           { id: 1, name: 'Lagos', code: 'LA' },
           { id: 2, name: 'Kano', code: 'KN' },
@@ -68,7 +65,7 @@ const IncidentMap = () => {
           { id: 5, name: 'Kaduna North', state_id: 4 }
         ])
         
-        setIncidents(mockIncidents)
+        // setIncidents already set above from API call
         setIsLoading(false)
       } catch (error) {
         console.error('Error fetching data:', error)
