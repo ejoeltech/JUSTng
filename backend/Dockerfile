@@ -8,17 +8,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
-
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Build the application
-RUN npm run build
+COPY package.json ./
+RUN npm install --only=production && npm cache clean --force
 
 # Production image, copy all the files and run node
 FROM base AS runner
@@ -31,17 +22,14 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 
-# Copy the public folder
-COPY --from=builder /app/public ./public
-
-# Copy the built application
-COPY --from=builder /app/dist ./dist
-
 # Copy package files
-COPY --from=builder /app/package.json ./package.json
+COPY package.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy application source code
+COPY . .
 
 # Change ownership of the app directory to the nodejs user
 RUN chown -R nodejs:nodejs /app
