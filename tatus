@@ -1,3 +1,3 @@
-[33m67e03eb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Convert all backend files to ES6 modules for Render deployment compatibility
-[33m36a3e4a[m Fix ES6 module configuration: add type: module to package.json for Render deployment
-[33m60d92a5[m Add production environment variable templates with actual Supabase credentials
+[33md7dae9f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Convert backend to Vercel Functions - Fix Failed to Fetch error
+[33m9eb0fe6[m Convert backend to Vercel API routes - Fix failed to fetch error
+[33mec5d883[m Add backend status component and environment variable documentation
