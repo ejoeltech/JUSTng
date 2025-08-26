@@ -14,6 +14,7 @@ import {
   Settings
 } from 'lucide-react'
 import OfflineQueueManager from '../components/OfflineQueueManager'
+import BackendStatus from '../components/BackendStatus'
 
 const Dashboard = () => {
   const { user, userRole } = useAuth()
@@ -94,6 +95,9 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Backend Status Check */}
+      <BackendStatus />
+      
       {/* Offline Queue Manager */}
       <OfflineQueueManager />
       

@@ -1,10 +1,12 @@
 import { supabase } from '../config/supabase'
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api'
+// Use the correct backend URL - this should match what you set in Vercel
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://just-backend-7y7t.onrender.com/api'
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL
+    console.log('API Service initialized with base URL:', this.baseURL)
   }
 
   // Get auth token from Supabase
@@ -27,7 +29,10 @@ class ApiService {
     }
 
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, config)
+      const fullUrl = `${this.baseURL}${endpoint}`
+      console.log(`Making API request to: ${fullUrl}`)
+      
+      const response = await fetch(fullUrl, config)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -37,6 +42,12 @@ class ApiService {
       return await response.json()
     } catch (error) {
       console.error(`API Error (${endpoint}):`, error)
+      
+      // Provide more helpful error messages
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error(`Cannot connect to backend server. Please check if the backend is running at ${this.baseURL}`)
+      }
+      
       throw error
     }
   }
