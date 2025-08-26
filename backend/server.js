@@ -54,6 +54,24 @@ app.use(limiter)
 app.use(express.json({ limit: '100mb' }))
 app.use(express.urlencoded({ extended: true, limit: '100mb' }))
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'JUST Backend API is running!',
+    status: 'active',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      incidents: '/api/incidents',
+      users: '/api/users',
+      admin: '/api/admin',
+      superAdmin: '/api/super-admin',
+      offlineQueue: '/api/offline-queue'
+    }
+  })
+})
+
 // Health check routes
 app.use('/health', healthRoutes)
 
