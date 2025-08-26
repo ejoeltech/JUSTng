@@ -1,37 +1,48 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
+  'https://tuhsvbzbbftaxdfqvxds.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1aHN2YnpiYmZ0YXhkZnF2eGRzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImiYXQiOjE3NTU5ODgyNTEsImV4cCI6MjA3MTU2NDI1MX0._AHK2ngkEQsM8Td2rHqZkjVLn9MMCsk7F1UK9u6JXgA'
 )
 
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    try {
-      const { email, password } = req.body
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true)
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT')
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  )
 
-      // Validate input
-      if (!email || !password) {
-        return res.status(400).json({
-          error: 'Missing required fields',
-          message: 'Email and password are required'
-        })
-      }
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
 
-      // Sign in user
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
 
-      if (authError) {
-        console.error('Login error:', authError)
-        return res.status(401).json({
-          error: 'Authentication failed',
-          message: 'Invalid email or password'
-        })
-      }
+  try {
+    const { email, password } = req.body
 
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' })
+    }
+
+    // Sign in with Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+    if (authError) {
+      console.error('Login error:', authError)
+      return res.status(401).json({ error: 'Invalid credentials' })
+    }
+
+    if (authData.user && authData.session) {
       // Get user profile
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
@@ -41,42 +52,28 @@ export default async function handler(req, res) {
 
       if (profileError) {
         console.error('Profile fetch error:', profileError)
-        // Still return success but without profile data
-        return res.status(200).json({
-          success: true,
-          message: 'Login successful',
-          user: {
-            id: authData.user.id,
-            email: authData.user.email,
-            role: 'user'
-          },
-          session: authData.session
-        })
       }
 
-      res.status(200).json({
-        success: true,
+      return res.status(200).json({
         message: 'Login successful',
         user: {
           id: authData.user.id,
           email: authData.user.email,
-          fullName: profile.full_name,
-          phone: profile.phone,
-          role: profile.role,
-          status: profile.status
+          full_name: profile?.full_name || authData.user.user_metadata?.full_name,
+          role: profile?.role || 'user',
+          status: profile?.status || 'active'
         },
-        session: authData.session
-      })
-
-    } catch (error) {
-      console.error('Login error:', error)
-      res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to authenticate user'
+        session: {
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
+          expires_at: authData.session.expires_at
+        }
       })
     }
-  } else {
-    res.setHeader('Allow', ['POST'])
-    res.status(405).json({ error: 'Method not allowed' })
+
+    return res.status(400).json({ error: 'Login failed' })
+  } catch (error) {
+    console.error('Login error:', error)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

@@ -1,12 +1,12 @@
 import { supabase } from '../config/supabase'
 
-// Use Vercel API routes (same domain as frontend)
+// Use Vercel Functions instead of external backend - this fixes the "Failed to fetch" error!
 const API_BASE_URL = '/api'
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL
-    console.log('API Service initialized with Vercel API routes:', this.baseURL)
+    console.log('API Service initialized with Vercel Functions URL:', this.baseURL)
   }
 
   // Get auth token from Supabase
@@ -34,7 +34,7 @@ class ApiService {
     }
 
     const fullUrl = `${this.baseURL}${endpoint}`
-    console.log(`Making API request to: ${fullUrl}`)
+    console.log(`Making API request to Vercel Function: ${fullUrl}`)
 
     try {
       const response = await fetch(fullUrl, config)

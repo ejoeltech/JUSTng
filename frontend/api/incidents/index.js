@@ -1,31 +1,39 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
+  'https://tuhsvbzbbftaxdfqvxds.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1aHN2YnpiYmZ0YXhkZnF2eGRzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImiYXQiOjE3NTU5ODgyNTEsImV4cCI6MjA3MTU2NDI1MX0._AHK2ngkEQsM8Td2rHqZkjVLn9MMCsk7F1UK9u6JXgA'
 )
 
-// Helper function to verify JWT token
-async function verifyToken(req) {
-  const authHeader = req.headers.authorization
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('No token provided')
-  }
-  
-  const token = authHeader.substring(7)
-  const { data: { user }, error } = await supabase.auth.getUser(token)
-  
-  if (error || !user) {
-    throw new Error('Invalid token')
-  }
-  
-  return user
-}
-
 export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true)
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT')
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  )
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+
   try {
-    const user = await verifyToken(req)
+    // Verify authentication
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    const token = authHeader.split(' ')[1]
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+
     switch (req.method) {
       case 'GET':
         // Get all incidents
@@ -33,7 +41,7 @@ export default async function handler(req, res) {
           .from('incidents')
           .select(`
             *,
-            user_profiles!inner(full_name, email, phone),
+            user_profiles!inner(full_name, email),
             states(name),
             lgas(name)
           `)
@@ -41,90 +49,49 @@ export default async function handler(req, res) {
 
         if (fetchError) {
           console.error('Fetch incidents error:', fetchError)
-          return res.status(500).json({
-            error: 'Failed to fetch incidents',
-            message: fetchError.message
-          })
+          return res.status(500).json({ error: 'Failed to fetch incidents' })
         }
 
-        res.status(200).json({
-          success: true,
-          incidents: incidents || []
-        })
-        break
+        return res.status(200).json(incidents)
 
       case 'POST':
         // Create new incident
         const { title, description, type, severity, date, address, latitude, longitude, isAnonymous } = req.body
 
         if (!title || !description || !type) {
-          return res.status(400).json({
-            error: 'Missing required fields',
-            message: 'Title, description, and type are required'
-          })
+          return res.status(400).json({ error: 'Missing required fields' })
         }
 
-        const newIncident = {
-          title,
-          description,
-          type,
-          severity: severity || 'medium',
-          incident_date: date || new Date().toISOString(),
-          address: address || null,
-          latitude: latitude || null,
-          longitude: longitude || null,
-          is_anonymous: isAnonymous || false,
-          user_id: user.id,
-          status: 'reported',
-          created_at: new Date().toISOString()
-        }
-
-        const { data: createdIncident, error: createError } = await supabase
+        const { data: newIncident, error: createError } = await supabase
           .from('incidents')
-          .insert([newIncident])
+          .insert([{
+            title,
+            description,
+            type,
+            severity: severity || 'medium',
+            incident_date: date || new Date().toISOString(),
+            address,
+            latitude: latitude || null,
+            longitude: longitude || null,
+            is_anonymous: isAnonymous || false,
+            user_id: user.id,
+            status: 'pending'
+          }])
           .select()
           .single()
 
         if (createError) {
           console.error('Create incident error:', createError)
-          return res.status(500).json({
-            error: 'Failed to create incident',
-            message: createError.message
-          })
+          return res.status(500).json({ error: 'Failed to create incident' })
         }
 
-        res.status(201).json({
-          success: true,
-          message: 'Incident created successfully',
-          incident: createdIncident
-        })
-        break
+        return res.status(201).json(newIncident)
 
       default:
-        res.setHeader('Allow', ['GET', 'POST'])
-        res.status(405).json({ error: 'Method not allowed' })
+        return res.status(405).json({ error: 'Method not allowed' })
     }
-
   } catch (error) {
     console.error('Incidents API error:', error)
-    
-    if (error.message === 'No token provided') {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Authentication token required'
-      })
-    }
-    
-    if (error.message === 'Invalid token') {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid authentication token'
-      })
-    }
-
-    res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
-    })
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }
