@@ -1,18 +1,23 @@
 import { supabase } from '../config/supabase'
 
-// Use the correct backend URL - this should match what you set in Vercel
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://just-backend-7y7t.onrender.com/api'
+// Use Vercel API routes (same domain as frontend)
+const API_BASE_URL = '/api'
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL
-    console.log('API Service initialized with base URL:', this.baseURL)
+    console.log('API Service initialized with Vercel API routes:', this.baseURL)
   }
 
   // Get auth token from Supabase
   async getAuthToken() {
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      return session?.access_token
+    } catch (error) {
+      console.error('Error getting auth token:', error)
+      return null
+    }
   }
 
   // Generic request method with authentication
@@ -28,10 +33,10 @@ class ApiService {
       ...options,
     }
 
+    const fullUrl = `${this.baseURL}${endpoint}`
+    console.log(`Making API request to: ${fullUrl}`)
+
     try {
-      const fullUrl = `${this.baseURL}${endpoint}`
-      console.log(`Making API request to: ${fullUrl}`)
-      
       const response = await fetch(fullUrl, config)
       
       if (!response.ok) {
@@ -42,12 +47,8 @@ class ApiService {
       return await response.json()
     } catch (error) {
       console.error(`API Error (${endpoint}):`, error)
-      
-      // Provide more helpful error messages
-      if (error.message.includes('Failed to fetch')) {
-        throw new Error(`Cannot connect to backend server. Please check if the backend is running at ${this.baseURL}`)
-      }
-      
+      console.error(`Full URL: ${fullUrl}`)
+      console.error(`Request config:`, config)
       throw error
     }
   }

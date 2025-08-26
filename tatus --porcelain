@@ -1,0 +1,5 @@
+[33mec5d883[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add backend status component and environment variable documentation
+[33mad08874[m Fix failed to fetch error: Update API service with correct backend URL and add backend status component
+[33mec356ce[m Add root route handler to fix 404 error
+[33m67e03eb[m Convert all backend files to ES6 modules for Render deployment compatibility
+[33m36a3e4a[m Fix ES6 module configuration: add type: module to package.json for Render deployment

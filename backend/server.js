@@ -54,6 +54,16 @@ app.use(limiter)
 app.use(express.json({ limit: '100mb' }))
 app.use(express.urlencoded({ extended: true, limit: '100mb' }))
 
+// Test endpoint to verify backend is working
+app.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Backend is working!',
+    timestamp: new Date().toISOString(),
+    cors: 'enabled',
+    status: 'success'
+  })
+})
+
 // Root route
 app.get('/', (req, res) => {
   res.json({ 
@@ -61,6 +71,7 @@ app.get('/', (req, res) => {
     status: 'active',
     timestamp: new Date().toISOString(),
     endpoints: {
+      test: '/test',
       health: '/health',
       auth: '/api/auth',
       incidents: '/api/incidents',
