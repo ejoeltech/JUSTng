@@ -59,14 +59,15 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const signUp = async (email, password, phone, fullName) => {
+  const signUp = async (email, password, phone, fullName, inviteCode) => {
     try {
       // Use API service for registration
       const result = await apiService.auth.register({
         email,
         password,
         phone,
-        fullName
+        fullName,
+        inviteCode
       })
 
       if (result.user) {

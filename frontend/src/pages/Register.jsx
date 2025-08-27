@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, Key } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const Register = () => {
@@ -10,7 +10,8 @@ const Register = () => {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    inviteCode: ''
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -70,6 +71,12 @@ const Register = () => {
       newErrors.confirmPassword = 'Passwords do not match'
     }
 
+    if (!formData.inviteCode) {
+      newErrors.inviteCode = 'Invite code is required'
+    } else if (!/^[A-Za-z0-9]{8,16}$/.test(formData.inviteCode)) {
+      newErrors.inviteCode = 'Invite code must be 8-16 alphanumeric characters'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -85,7 +92,8 @@ const Register = () => {
         formData.email,
         formData.password,
         formData.phone,
-        formData.fullName
+        formData.fullName,
+        formData.inviteCode
       )
       
       if (error) {
@@ -216,6 +224,39 @@ const Register = () => {
             </div>
 
             <div>
+              <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700">
+                Invite Code
+              </label>
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Key className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="inviteCode"
+                  name="inviteCode"
+                  type="text"
+                  autoComplete="off"
+                  required
+                  value={formData.inviteCode}
+                  onChange={handleChange}
+                  className={`appearance-none relative block w-full pl-10 pr-3 py-2 border ${
+                    errors.inviteCode ? 'border-red-300' : 'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
+                  placeholder="Enter your invite code (e.g., JUST2024)"
+                />
+              </div>
+              {errors.inviteCode && (
+                <div className="mt-1 flex items-center text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.inviteCode}
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Available codes: JUST2024 (user), ADMIN2024 (admin), POLICE001 (police)
+              </p>
+            </div>
+
+            <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
@@ -293,6 +334,36 @@ const Register = () => {
                 <div className="mt-1 flex items-center text-sm text-red-600">
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.confirmPassword}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700">
+                Invite Code
+              </label>
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Key className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="inviteCode"
+                  name="inviteCode"
+                  type="text"
+                  autoComplete="off"
+                  required
+                  value={formData.inviteCode}
+                  onChange={handleChange}
+                  className={`appearance-none relative block w-full pl-10 pr-3 py-2 border ${
+                    errors.inviteCode ? 'border-red-300' : 'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
+                  placeholder="Enter your invite code"
+                />
+              </div>
+              {errors.inviteCode && (
+                <div className="mt-1 flex items-center text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.inviteCode}
                 </div>
               )}
             </div>
