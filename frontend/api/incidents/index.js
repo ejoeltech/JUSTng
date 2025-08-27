@@ -1,5 +1,6 @@
-// Protected Incidents API with JWT authentication
+// Protected Incidents API with real database integration
 import { authenticateToken, requireRole, requireActiveStatus } from '../middleware/auth.js'
+import databaseService from '../services/database.js'
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -37,94 +38,37 @@ export default async function handler(req, res) {
   }
 }
 
-// Get incidents (with role-based filtering)
+// Get incidents from database with role-based filtering
 async function handleGetIncidents(req, res) {
   try {
     const { user } = req
-    const { page = 1, limit = 10, status, severity, location } = req.query
+    const { page = 1, limit = 10, status, severity, location, category } = req.query
 
-    // Simulated incidents database
-    const mockIncidents = [
-      {
-        id: 'incident-001',
-        title: 'Police harassment at Lekki',
-        description: 'Officer demanded bribe for traffic violation',
-        location: { lat: 6.5244, lng: 3.3792, address: 'Lekki, Lagos' },
-        status: 'investigating',
-        severity: 'high',
-        category: 'bribery',
-        reporterId: 'user-003',
-        reporterName: 'John Doe',
-        createdAt: '2024-08-23T10:00:00Z',
-        updatedAt: '2024-08-23T15:30:00Z',
-        evidence: ['photo-001.jpg', 'video-001.mp4'],
-        assignedTo: 'police-001',
-        priority: 'high'
-      },
-      {
-        id: 'incident-002',
-        title: 'Unlawful arrest in Victoria Island',
-        description: 'Arrested without proper cause or warrant',
-        location: { lat: 6.4281, lng: 3.4219, address: 'Victoria Island, Lagos' },
-        status: 'reported',
-        severity: 'medium',
-        category: 'unlawful_arrest',
-        reporterId: 'user-003',
-        reporterName: 'Jane Smith',
-        createdAt: '2024-08-22T14:20:00Z',
-        updatedAt: '2024-08-22T14:20:00Z',
-        evidence: ['photo-002.jpg'],
-        assignedTo: null,
-        priority: 'medium'
-      }
-    ]
+    // Prepare filters
+    const filters = {}
+    if (status) filters.status = status
+    if (severity) filters.severity = severity
+    if (location) filters.location = location
+    if (category) filters.category = category
 
-    // Role-based filtering
-    let filteredIncidents = mockIncidents
-
-    if (user.role === 'user') {
-      // Users can only see their own incidents
-      filteredIncidents = mockIncidents.filter(incident => incident.reporterId === user.userId)
-    } else if (user.role === 'police') {
-      // Police can see incidents in their jurisdiction
-      filteredIncidents = mockIncidents.filter(incident => 
-        incident.status === 'reported' || incident.assignedTo === user.userId
-      )
+    // Get incidents from database
+    const result = await databaseService.getIncidents(filters, user.role, user.userId)
+    
+    if (result.error) {
+      console.error('Database error:', result.error)
+      return res.status(500).json({ 
+        error: 'Failed to retrieve incidents from database' 
+      })
     }
-    // Admin and SuperAdmin can see all incidents
-
-    // Apply filters
-    if (status) {
-      filteredIncidents = filteredIncidents.filter(incident => incident.status === status)
-    }
-    if (severity) {
-      filteredIncidents = filteredIncidents.filter(incident => incident.severity === severity)
-    }
-    if (location) {
-      // Simple location filtering (in production, use geospatial queries)
-      filteredIncidents = filteredIncidents.filter(incident => 
-        incident.location.address.toLowerCase().includes(location.toLowerCase())
-      )
-    }
-
-    // Pagination
-    const startIndex = (page - 1) * limit
-    const endIndex = startIndex + parseInt(limit)
-    const paginatedIncidents = filteredIncidents.slice(startIndex, endIndex)
 
     return res.status(200).json({
-      incidents: paginatedIncidents,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(filteredIncidents.length / limit),
-        totalIncidents: filteredIncidents.length,
-        hasNextPage: endIndex < filteredIncidents.length,
-        hasPrevPage: page > 1
-      },
+      incidents: result.data,
+      pagination: result.pagination,
       filters: {
         status,
         severity,
-        location
+        location,
+        category
       },
       userRole: user.role,
       timestamp: new Date().toISOString()
@@ -138,7 +82,7 @@ async function handleGetIncidents(req, res) {
   }
 }
 
-// Create new incident
+// Create new incident in database
 async function handleCreateIncident(req, res) {
   try {
     const { user } = req
@@ -158,8 +102,8 @@ async function handleCreateIncident(req, res) {
       })
     }
 
-    // Create new incident
-    const newIncident = {
+    // Create new incident object
+    const incidentData = {
       id: 'incident-' + Date.now(),
       title,
       description,
@@ -169,24 +113,29 @@ async function handleCreateIncident(req, res) {
       category,
       reporterId: user.userId,
       reporterName: user.fullName || 'Anonymous',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
       evidence: evidence || [],
       assignedTo: null,
       priority: severity === 'high' ? 'high' : severity === 'critical' ? 'urgent' : 'medium'
     }
 
-    // In production, save to database
-    // For now, just return the created incident
+    // Save incident to database
+    const dbResult = await databaseService.createIncident(incidentData)
+    if (dbResult.error) {
+      console.error('Database error:', dbResult.error)
+      return res.status(500).json({ 
+        error: 'Failed to create incident. Please try again.' 
+      })
+    }
 
     return res.status(201).json({
       message: 'Incident reported successfully',
-      incident: newIncident,
+      incident: dbResult.data,
       nextSteps: [
-        'Your incident has been recorded',
+        'Your incident has been recorded in our secure database',
         'You will receive updates on the status',
         'Evidence has been securely stored',
-        'Authorities will be notified if required'
+        'Authorities will be notified if required',
+        'You can track your incident in your dashboard'
       ],
       timestamp: new Date().toISOString()
     })

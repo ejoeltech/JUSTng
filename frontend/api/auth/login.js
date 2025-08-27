@@ -1,6 +1,7 @@
-// Vercel Function for secure user login with JWT
+// Vercel Function for secure user login with real database integration
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import databaseService from '../services/database.js'
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -33,61 +34,29 @@ export default async function handler(req, res) {
       })
     }
 
-    // Simulated user database (in production, this would be Supabase)
-    const users = [
-      { 
-        id: 'user-001', 
-        email: 'admin@just-app.ng', 
-        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // admin123456
-        fullName: 'System Administrator', 
-        role: 'superAdmin', 
-        status: 'active', 
-        lastLogin: null,
-        emailVerified: true
-      },
-      { 
-        id: 'user-002', 
-        email: 'police@just-app.ng', 
-        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // police123456
-        fullName: 'Police Officer', 
-        role: 'police', 
-        status: 'active', 
-        lastLogin: null,
-        emailVerified: true
-      },
-      { 
-        id: 'user-003', 
-        email: 'user@just-app.ng', 
-        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // user123456
-        fullName: 'Standard User', 
-        role: 'user', 
-        status: 'active', 
-        lastLogin: null,
-        emailVerified: true
-      }
-    ]
-
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase())
-    
-    if (!user) {
+    // Get user from database
+    const userResult = await databaseService.getUserByEmail(email)
+    if (userResult.error || !userResult.data) {
       return res.status(401).json({ 
         error: 'Invalid email or password' 
       })
     }
 
+    const user = userResult.data
+    
     if (user.status !== 'active') {
       return res.status(401).json({ 
         error: 'Account is not active. Please verify your email first.' 
       })
     }
 
-    if (!user.emailVerified) {
+    if (!user.email_verified) {
       return res.status(401).json({ 
         error: 'Please verify your email before logging in.' 
       })
     }
 
-    // Verify password (in production, use bcrypt.compare)
+    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password)
     if (!isValidPassword) {
       return res.status(401).json({ 
@@ -109,7 +78,7 @@ export default async function handler(req, res) {
     )
 
     // Update last login
-    user.lastLogin = new Date().toISOString()
+    await databaseService.updateUser(user.id, { last_login: new Date().toISOString() })
 
     // Success response
     return res.status(200).json({
@@ -117,11 +86,11 @@ export default async function handler(req, res) {
       user: { 
         id: user.id, 
         email: user.email, 
-        fullName: user.fullName, 
+        fullName: user.full_name, 
         role: user.role, 
         status: user.status, 
-        lastLogin: user.lastLogin,
-        emailVerified: user.emailVerified
+        lastLogin: user.last_login,
+        emailVerified: user.email_verified
       },
       accessToken: token,
       tokenType: 'Bearer',

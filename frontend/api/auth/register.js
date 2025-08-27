@@ -1,6 +1,7 @@
-// Vercel Function for restricted user registration with password hashing
+// Vercel Function for restricted user registration with real database integration
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import databaseService from '../services/database.js'
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -62,6 +63,14 @@ export default async function handler(req, res) {
       })
     }
 
+    // Check if user already exists
+    const existingUser = await databaseService.getUserByEmail(email)
+    if (existingUser.data) {
+      return res.status(409).json({ 
+        error: 'User with this email already exists' 
+      })
+    }
+
     // Hash password
     const saltRounds = 12
     const hashedPassword = await bcrypt.hash(password, saltRounds)
@@ -72,16 +81,11 @@ export default async function handler(req, res) {
                             Math.random().toString(36).substring(2, 15) +
                             Math.random().toString(36).substring(2, 15)
 
-    // In a real system, you would:
-    // 1. Store user in database
-    // 2. Send actual verification email
-    // 3. Store verification token securely
-
-    // For now, we'll simulate the process
-    const user = {
+    // Create user object
+    const userData = {
       id: 'user-' + Date.now(),
       email,
-      password: hashedPassword, // Store hashed password
+      password: hashedPassword,
       fullName,
       phone: phone || null,
       organization: organization || 'Nigerian Police Monitoring',
@@ -93,15 +97,24 @@ export default async function handler(req, res) {
       createdAt: new Date().toISOString()
     }
 
+    // Save user to database
+    const dbResult = await databaseService.createUser(userData)
+    if (dbResult.error) {
+      console.error('Database error:', dbResult.error)
+      return res.status(500).json({ 
+        error: 'Failed to create user account. Please try again.' 
+      })
+    }
+
     // Generate JWT token for immediate access (optional)
     const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
     const token = jwt.sign(
       { 
-        userId: user.id, 
-        email: user.email, 
-        role: user.role,
-        status: user.status,
-        emailVerified: false
+        userId: userData.id, 
+        email: userData.email, 
+        role: userData.role,
+        status: userData.status,
+        emailVerified: userData.emailVerified
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -111,14 +124,14 @@ export default async function handler(req, res) {
     return res.status(200).json({
       message: 'Registration successful! Please verify your email to activate your account.',
       user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        phone: user.phone,
-        organization: user.organization,
-        role: user.role,
-        status: user.status,
-        emailVerified: user.emailVerified
+        id: userData.id,
+        email: userData.email,
+        fullName: userData.fullName,
+        phone: userData.phone,
+        organization: userData.organization,
+        role: userData.role,
+        status: userData.status,
+        emailVerified: userData.emailVerified
       },
       accessToken: token, // Optional: allow immediate login
       tokenType: 'Bearer',
