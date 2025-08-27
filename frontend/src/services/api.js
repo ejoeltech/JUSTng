@@ -95,12 +95,12 @@ class ApiService {
 
   // Authentication endpoints
   auth = {
-    register: (userData) => this.request('/auth/register', {
+    register: (userData) => this.request('/auth', {
       method: 'POST',
       body: JSON.stringify(userData)
     }),
 
-    login: (credentials) => this.request('/auth/login', {
+    login: (credentials) => this.request('/auth', {
       method: 'POST',
       body: JSON.stringify(credentials)
     }),
