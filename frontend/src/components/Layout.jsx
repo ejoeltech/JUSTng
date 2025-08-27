@@ -1,18 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Menu, X, Shield, Map, FileText, User, LogOut, Settings } from 'lucide-react'
+import { Menu, X, Shield, Map, FileText, User, LogOut, Settings, ChevronDown } from 'lucide-react'
 
 const Layout = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const { user, userRole, signOut } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const profileMenuRef = useRef(null)
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/')
     setIsMobileMenuOpen(false)
+    setIsProfileMenuOpen(false)
   }
 
   const isActive = (path) => location.pathname === path
@@ -69,23 +86,43 @@ const Layout = ({ children }) => {
             {/* User menu */}
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <Link
-                    to="/dashboard"
-                    className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Dashboard
-                  </Link>
+                <div className="relative" ref={profileMenuRef}>
                   <button
-                    onClick={handleSignOut}
-                    className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                   >
-                    Sign Out
+                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary-600" />
+                    </div>
+                    <span>{user.fullName || user.email?.split('@')[0]}</span>
+                    <ChevronDown className="h-4 w-4" />
                   </button>
-                  <div className="flex items-center space-x-2">
-                    <User className="h-5 w-5 text-gray-400" />
-                    <span className="text-sm text-gray-700">{user.email}</span>
-                  </div>
+
+                  {/* Profile dropdown */}
+                  {isProfileMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      <div className="px-4 py-2 border-b border-gray-200">
+                        <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-xs text-primary-600 capitalize mt-1">{userRole} Role</p>
+                      </div>
+                      
+                      <Link
+                        to="/dashboard"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        Dashboard
+                      </Link>
+                      
+                      <button
+                        onClick={handleSignOut}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center space-x-4">
@@ -148,6 +185,12 @@ const Layout = ({ children }) => {
               
               {user ? (
                 <>
+                  <div className="px-4 py-2 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                    <p className="text-xs text-primary-600 capitalize mt-1">{userRole} Role</p>
+                  </div>
+                  
                   <Link
                     to="/dashboard"
                     className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"

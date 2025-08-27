@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase, supabaseHelpers } from '../config/supabase'
 import apiService from '../services/api'
 
 const AuthContext = createContext({})
@@ -14,53 +13,34 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [userRole, setUserRole] = useState(null)
 
   useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUser(session.user)
-        await fetchUserRole(session.user.id)
-      }
-      setLoading(false)
-    }
-
-    getSession()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user)
-          await fetchUserRole(session.user.id)
-        } else {
-          setUser(null)
-          setUserRole(null)
+    // Check if user is logged in from localStorage
+    const checkAuthState = () => {
+      const savedUser = localStorage.getItem('just_user')
+      const savedRole = localStorage.getItem('just_user_role')
+      
+      if (savedUser && savedRole) {
+        try {
+          const userData = JSON.parse(savedUser)
+          setUser(userData)
+          setUserRole(savedRole)
+        } catch (error) {
+          console.error('Error parsing saved user data:', error)
+          localStorage.removeItem('just_user')
+          localStorage.removeItem('just_user_role')
         }
-        setLoading(false)
       }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const fetchUserRole = async (userId) => {
-    try {
-      // Use API service to get user profile
-      const profile = await apiService.users.getProfile()
-      if (profile && profile.role) {
-        setUserRole(profile.role)
-      }
-    } catch (error) {
-      console.error('Error fetching user role:', error)
     }
-  }
+
+    checkAuthState()
+  }, [])
 
   const signUp = async (email, password, phone, fullName, inviteCode) => {
     try {
+      setLoading(true)
       // Use API service for registration
       const result = await apiService.auth.register({
         email,
@@ -71,18 +51,33 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (result.user) {
-        // Fetch user role after successful registration
-        await fetchUserRole(result.user.id)
+        // Store user data locally for now (in production, this would be JWT)
+        const userData = {
+          id: result.user.id,
+          email: result.user.email,
+          fullName: result.user.fullName,
+          role: result.user.role,
+          status: result.user.status
+        }
+        
+        localStorage.setItem('just_user', JSON.stringify(userData))
+        localStorage.setItem('just_user_role', result.user.role)
+        
+        setUser(userData)
+        setUserRole(result.user.role)
       }
 
       return { data: result, error: null }
     } catch (error) {
       return { data: null, error }
+    } finally {
+      setLoading(false)
     }
   }
 
   const signIn = async (email, password) => {
     try {
+      setLoading(true)
       // Use API service for login
       const result = await apiService.auth.login({
         email,
@@ -90,20 +85,39 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (result.user) {
-        // Fetch user role after successful login
-        await fetchUserRole(result.user.id)
+        // Store user data locally for now (in production, this would be JWT)
+        const userData = {
+          id: result.user.id,
+          email: result.user.email,
+          fullName: result.user.fullName,
+          role: result.user.role,
+          status: result.user.status
+        }
+        
+        localStorage.setItem('just_user', JSON.stringify(userData))
+        localStorage.setItem('just_user_role', result.user.role)
+        
+        setUser(userData)
+        setUserRole(result.user.role)
       }
 
       return { data: result, error: null }
     } catch (error) {
       return { data: null, error }
+    } finally {
+      setLoading(false)
     }
   }
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      // Clear local storage
+      localStorage.removeItem('just_user')
+      localStorage.removeItem('just_user_role')
+      
+      // Clear state
+      setUser(null)
+      setUserRole(null)
     } catch (error) {
       console.error('Error signing out:', error)
     }
@@ -127,7 +141,6 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     resetPassword,
-    supabase,
   }
 
   return (
