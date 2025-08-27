@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client with proper environment variables
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://tuhsvbzbbftaxdfqvxds.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1aHN2YnpiYmZ0YXhkZnF2eGRzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImiYXQiOjE3NTU5ODgyNTEsImV4cCI6MjA3MTU2NDI1MX0._AHK2ngkEQsM8Td2rHqZkjVLn9MMCsk7F1UK9u6JXgA'
+// TEMPORARY: Hardcoded values for immediate testing
+const supabaseUrl = 'https://tuhsvbzbbftaxdfqvxds.supabase.co'
+const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1aHN2YnpiYmZ0YXhkZnF2eGRzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImiYXQiOjE3NTU5ODgyNTEsImV4cCI6MjA3MTU2NDI1MX0._AHK2ngkEQsM8Td2rHqZkjVLn9MMCsk7F1UK9u6JXgA'
 
-console.log('Login function - Supabase URL:', supabaseUrl)
+console.log('Login function - Using hardcoded Supabase URL:', supabaseUrl)
 console.log('Login function - Service key exists:', !!supabaseServiceKey)
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
