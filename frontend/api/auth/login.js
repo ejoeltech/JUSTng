@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client
+// Initialize Supabase client with proper environment variables
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://tuhsvbzbbftaxdfqvxds.supabase.co'
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1aHN2YnpiYmZ0YXhkZnF2eGRzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImiYXQiOjE3NTU5ODgyNTEsImV4cCI6MjA3MTU2NDI1MX0._AHK2ngkEQsM8Td2rHqZkjVLn9MMCsk7F1UK9u6JXgA'
+
+console.log('Login function - Supabase URL:', supabaseUrl)
+console.log('Login function - Service key exists:', !!supabaseServiceKey)
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -28,6 +31,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Email and password are required' })
     }
 
+    console.log('Attempting login for:', email)
+
     // Use real Supabase authentication
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -43,12 +48,18 @@ export default async function handler(req, res) {
     }
 
     if (data.user) {
+      console.log('Login successful for user:', data.user.id)
+      
       // Get user profile from database
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single()
+
+      if (profileError) {
+        console.log('Profile fetch error (non-critical):', profileError)
+      }
 
       return res.status(200).json({
         message: 'Login successful',
@@ -67,6 +78,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Login error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    })
   }
 }

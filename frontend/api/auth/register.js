@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client
+// Initialize Supabase client with proper environment variables
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://tuhsvbzbbftaxdfqvxds.supabase.co'
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1aHN2YnpiYmZ0YXhkZnF2eGRzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImiYXQiOjE3NTU5ODgyNTEsImV4cCI6MjA3MTU2NDI1MX0._AHK2ngkEQsM8Td2rHqZkjVLn9MMCsk7F1UK9u6JXgA'
+
+console.log('Register function - Supabase URL:', supabaseUrl)
+console.log('Register function - Service key exists:', !!supabaseServiceKey)
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -28,6 +31,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Email, password, and full name are required' })
     }
 
+    console.log('Attempting registration for:', email)
+
     // Create user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -49,6 +54,8 @@ export default async function handler(req, res) {
     }
 
     if (authData.user) {
+      console.log('User created successfully:', authData.user.id)
+      
       // Create user profile in database
       const { error: profileError } = await supabase
         .from('users')
@@ -85,6 +92,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Registration error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    })
   }
 }
