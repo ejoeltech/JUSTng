@@ -11,7 +11,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.56.0",
+    "@supabase/supabase-js": "^2.38.4",
     "date-fns": "^2.30.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
