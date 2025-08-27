@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
   const [userRole, setUserRole] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     // Check if user is logged in from localStorage
@@ -25,18 +26,33 @@ export const AuthProvider = ({ children }) => {
       if (savedUser && savedRole) {
         try {
           const userData = JSON.parse(savedUser)
-          setUser(userData)
-          setUserRole(savedRole)
+          
+          // Check if token is still valid (basic check)
+          if (userData.accessToken) {
+            setUser(userData)
+            setUserRole(savedRole)
+            setIsAuthenticated(true)
+          } else {
+            // No valid token, clear auth state
+            clearAuthState()
+          }
         } catch (error) {
           console.error('Error parsing saved user data:', error)
-          localStorage.removeItem('just_user')
-          localStorage.removeItem('just_user_role')
+          clearAuthState()
         }
       }
     }
 
     checkAuthState()
   }, [])
+
+  const clearAuthState = () => {
+    localStorage.removeItem('just_user')
+    localStorage.removeItem('just_user_role')
+    setUser(null)
+    setUserRole(null)
+    setIsAuthenticated(false)
+  }
 
   const signUp = async (email, password, phone, fullName, inviteCode) => {
     try {
@@ -51,13 +67,16 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (result.user) {
-        // Store user data locally for now (in production, this would be JWT)
+        // Store user data locally with JWT token
         const userData = {
           id: result.user.id,
           email: result.user.email,
           fullName: result.user.fullName,
           role: result.user.role,
-          status: result.user.status
+          status: result.user.status,
+          accessToken: result.accessToken,
+          tokenType: result.tokenType,
+          expiresIn: result.expiresIn
         }
         
         localStorage.setItem('just_user', JSON.stringify(userData))
@@ -65,6 +84,7 @@ export const AuthProvider = ({ children }) => {
         
         setUser(userData)
         setUserRole(result.user.role)
+        setIsAuthenticated(true)
       }
 
       return { data: result, error: null }
@@ -85,13 +105,16 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (result.user) {
-        // Store user data locally for now (in production, this would be JWT)
+        // Store user data locally with JWT token
         const userData = {
           id: result.user.id,
           email: result.user.email,
           fullName: result.user.fullName,
           role: result.user.role,
-          status: result.user.status
+          status: result.user.status,
+          accessToken: result.accessToken,
+          tokenType: result.tokenType,
+          expiresIn: result.expiresIn
         }
         
         localStorage.setItem('just_user', JSON.stringify(userData))
@@ -99,6 +122,7 @@ export const AuthProvider = ({ children }) => {
         
         setUser(userData)
         setUserRole(result.user.role)
+        setIsAuthenticated(true)
       }
 
       return { data: result, error: null }
@@ -111,13 +135,7 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      // Clear local storage
-      localStorage.removeItem('just_user')
-      localStorage.removeItem('just_user_role')
-      
-      // Clear state
-      setUser(null)
-      setUserRole(null)
+      clearAuthState()
     } catch (error) {
       console.error('Error signing out:', error)
     }
@@ -133,14 +151,70 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const verifyEmail = async (email, verificationToken) => {
+    try {
+      const result = await apiService.auth.verifyEmail({ email, verificationToken })
+      
+      if (result.user) {
+        // Update user status if verification successful
+        const currentUser = JSON.parse(localStorage.getItem('just_user') || '{}')
+        if (currentUser.email === email) {
+          const updatedUser = { ...currentUser, status: 'active', emailVerified: true }
+          localStorage.setItem('just_user', JSON.stringify(updatedUser))
+          setUser(updatedUser)
+        }
+      }
+      
+      return { data: result, error: null }
+    } catch (error) {
+      return { data: null, error }
+    }
+  }
+
+  const resendVerification = async (email) => {
+    try {
+      const result = await apiService.auth.resendVerification({ email })
+      return { data: result, error: null }
+    } catch (error) {
+      return { data: null, error }
+    }
+  }
+
+  // Check if user has specific role
+  const hasRole = (role) => {
+    return userRole === role
+  }
+
+  // Check if user has any of the specified roles
+  const hasAnyRole = (roles) => {
+    return roles.includes(userRole)
+  }
+
+  // Check if user can access admin features
+  const canAccessAdmin = () => {
+    return hasAnyRole(['admin', 'superAdmin'])
+  }
+
+  // Check if user can access super admin features
+  const canAccessSuperAdmin = () => {
+    return hasRole('superAdmin')
+  }
+
   const value = {
     user,
     userRole,
     loading,
+    isAuthenticated,
     signUp,
     signIn,
     signOut,
     resetPassword,
+    verifyEmail,
+    resendVerification,
+    hasRole,
+    hasAnyRole,
+    canAccessAdmin,
+    canAccessSuperAdmin,
   }
 
   return (

@@ -1,4 +1,7 @@
-// Vercel Function for restricted user registration
+// Vercel Function for restricted user registration with password hashing
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -59,6 +62,10 @@ export default async function handler(req, res) {
       })
     }
 
+    // Hash password
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
     // Generate verification token
     const verificationToken = Math.random().toString(36).substring(2, 15) + 
                             Math.random().toString(36).substring(2, 15) +
@@ -66,15 +73,15 @@ export default async function handler(req, res) {
                             Math.random().toString(36).substring(2, 15)
 
     // In a real system, you would:
-    // 1. Hash the password
-    // 2. Store user in database
-    // 3. Send actual verification email
-    // 4. Store verification token securely
+    // 1. Store user in database
+    // 2. Send actual verification email
+    // 3. Store verification token securely
 
     // For now, we'll simulate the process
     const user = {
       id: 'user-' + Date.now(),
       email,
+      password: hashedPassword, // Store hashed password
       fullName,
       phone: phone || null,
       organization: organization || 'Nigerian Police Monitoring',
@@ -85,6 +92,20 @@ export default async function handler(req, res) {
       verificationToken: verificationToken,
       createdAt: new Date().toISOString()
     }
+
+    // Generate JWT token for immediate access (optional)
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email, 
+        role: user.role,
+        status: user.status,
+        emailVerified: false
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    )
 
     // Success response with verification details
     return res.status(200).json({
@@ -99,6 +120,9 @@ export default async function handler(req, res) {
         status: user.status,
         emailVerified: user.emailVerified
       },
+      accessToken: token, // Optional: allow immediate login
+      tokenType: 'Bearer',
+      expiresIn: '24h',
       accessLevel: userRole === 'superAdmin' ? 'full' : userRole === 'admin' ? 'admin' : userRole === 'police' ? 'police' : 'restricted',
       emailConfirmation: {
         sent: true,

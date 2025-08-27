@@ -1,26 +1,26 @@
 import { supabase } from '../config/supabase'
 
-// Simple API service - will be replaced with Vercel Functions after deployment
+// API service with JWT authentication
 class ApiService {
   constructor() {
     this.baseURL = '/api' // Will be set to Vercel Functions URL after deployment
     console.log('API Service initialized')
   }
 
-  // Get auth token from Supabase
-  async getAuthToken() {
+  // Get auth token from localStorage
+  getAuthToken() {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      return session?.access_token
+      const user = JSON.parse(localStorage.getItem('just_user') || '{}')
+      return user.accessToken || null
     } catch (error) {
       console.error('Error getting auth token:', error)
       return null
     }
   }
 
-  // Generic request method
+  // Generic request method with JWT authentication
   async request(endpoint, options = {}) {
-    const token = await this.getAuthToken()
+    const token = this.getAuthToken()
     
     const config = {
       headers: {
@@ -39,6 +39,16 @@ class ApiService {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        
+        // Handle authentication errors
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('just_user')
+          localStorage.removeItem('just_user_role')
+          window.location.href = '/login'
+          throw new Error('Authentication expired. Please log in again.')
+        }
+        
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
       }
 
@@ -79,70 +89,155 @@ class ApiService {
     verifyToken: () => this.request('/auth/verify')
   }
 
-  // Incidents endpoints
+  // Incidents endpoints with JWT authentication
   incidents = {
-    getAll: () => this.request('/incidents'),
+    getAll: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString()
+      return this.request(`/incidents${queryString ? `?${queryString}` : ''}`)
+    },
+    
     getById: (id) => this.request(`/incidents/${id}`),
+    
     create: (incidentData) => this.request('/incidents', {
       method: 'POST',
       body: JSON.stringify(incidentData)
     }),
+    
     update: (id, updateData) => this.request(`/incidents/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updateData)
     }),
+    
     delete: (id) => this.request(`/incidents/${id}`, {
       method: 'DELETE'
     }),
-    uploadMedia: (file, onProgress) => {
-      const formData = new FormData()
-      formData.append('file', file)
-      
-      return fetch(`${this.baseURL}/incidents/upload`, {
-        method: 'POST',
-        body: formData
-      })
-    }
+    
+    uploadEvidence: (fileData) => this.request('/incidents/upload', {
+      method: 'POST',
+      body: JSON.stringify(fileData)
+    })
   }
 
   // Users endpoints
   users = {
     getProfile: () => this.request('/users/profile'),
+    
     updateProfile: (profileData) => this.request('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData)
     }),
-    getIncidents: () => this.request('/users/incidents'),
-    getStats: () => this.request('/users/stats')
+    
+    changePassword: (passwordData) => this.request('/users/change-password', {
+      method: 'PUT',
+      body: JSON.stringify(passwordData)
+    })
   }
 
   // Admin endpoints
   admin = {
-    getStats: () => this.request('/admin/stats'),
-    getIncidents: () => this.request('/admin/incidents'),
-    updateIncident: (id, updateData) => this.request(`/admin/incidents/${id}`, {
+    getUsers: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString()
+      return this.request(`/admin/users${queryString ? `?${queryString}` : ''}`)
+    },
+    
+    updateUser: (userId, userData) => this.request(`/admin/users/${userId}`, {
       method: 'PUT',
-      body: JSON.stringify(updateData)
+      body: JSON.stringify(userData)
     }),
-    assignOfficer: (incidentId, officerId) => this.request(`/admin/incidents/${incidentId}/assign`, {
+    
+    deleteUser: (userId) => this.request(`/admin/users/${userId}`, {
+      method: 'DELETE'
+    }),
+    
+    getIncidents: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString()
+      return this.request(`/admin/incidents${queryString ? `?${queryString}` : ''}`)
+    },
+    
+    updateIncident: (incidentId, incidentData) => this.request(`/admin/incidents/${incidentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(incidentData)
+    }),
+    
+    getAnalytics: () => this.request('/admin/analytics'),
+    
+    getSystemHealth: () => this.request('/admin/health')
+  }
+
+  // SuperAdmin endpoints
+  superAdmin = {
+    getSystemStats: () => this.request('/super-admin/stats'),
+    
+    getUsers: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString()
+      return this.request(`/super-admin/users${queryString ? `?${queryString}` : ''}`)
+    },
+    
+    updateUserRole: (userId, roleData) => this.request(`/super-admin/users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify(roleData)
+    }),
+    
+    getSystemLogs: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString()
+      return this.request(`/super-admin/logs${queryString ? `?${queryString}` : ''}`)
+    },
+    
+    createAnnouncement: (announcementData) => this.request('/super-admin/announcements', {
       method: 'POST',
-      body: JSON.stringify({ officerId })
+      body: JSON.stringify(announcementData)
+    }),
+    
+    getAnnouncements: () => this.request('/super-admin/announcements'),
+    
+    updateAnnouncement: (announcementId, announcementData) => this.request(`/super-admin/announcements/${announcementId}`, {
+      method: 'PUT',
+      body: JSON.stringify(announcementData)
+    }),
+    
+    deleteAnnouncement: (announcementId) => this.request(`/super-admin/announcements/${announcementId}`, {
+      method: 'DELETE'
     })
   }
 
-  // Super Admin endpoints
-  superAdmin = {
-    getSystemStats: () => this.request('/super-admin/stats'),
-    getAppSettings: () => this.request('/super-admin/settings'),
-    updateAppSettings: (settings) => this.request('/super-admin/settings', {
-      method: 'PUT',
-      body: JSON.stringify(settings)
-    }),
-    toggleMaintenance: (enabled) => this.request('/super-admin/maintenance', {
-      method: 'POST',
-      body: JSON.stringify({ enabled })
-    })
+  // Utility methods
+  utils = {
+    // Check if user is authenticated
+    isAuthenticated: () => {
+      const token = this.getAuthToken()
+      return !!token
+    },
+
+    // Get user role
+    getUserRole: () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('just_user') || '{}')
+        return user.role || null
+      } catch (error) {
+        return null
+      }
+    },
+
+    // Check if user has specific role
+    hasRole: (role) => {
+      const userRole = this.getUserRole()
+      return userRole === role
+    },
+
+    // Check if user has any of the specified roles
+    hasAnyRole: (roles) => {
+      const userRole = this.getUserRole()
+      return roles.includes(userRole)
+    },
+
+    // Logout user
+    logout: () => {
+      localStorage.removeItem('just_user')
+      localStorage.removeItem('just_user_role')
+      window.location.href = '/'
+    }
   }
 }
 
-export default new ApiService()
+const apiService = new ApiService()
+export default apiService
