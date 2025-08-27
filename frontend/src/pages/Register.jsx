@@ -102,7 +102,20 @@ const Register = () => {
       }
 
       toast.success('Registration successful! Please check your email to verify your account.')
-      navigate('/login')
+      
+      // Show detailed instructions
+      toast.success('Verification email sent! Check your inbox and spam folder.', {
+        duration: 6000,
+        icon: '📧'
+      })
+      
+      // Navigate to a verification page or show instructions
+      navigate('/verify-email', { 
+        state: { 
+          email: formData.email,
+          message: 'Please check your email for verification instructions'
+        }
+      })
     } catch (error) {
       toast.error('An unexpected error occurred')
       console.error('Registration error:', error)

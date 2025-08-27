@@ -71,7 +71,7 @@ export default async function handler(req, res) {
 
     // Success response
     return res.status(200).json({
-      message: 'Registration successful! Account created with restricted access.',
+      message: 'Registration successful! Please check your email to verify your account.',
       user: {
         email,
         fullName,
@@ -80,17 +80,25 @@ export default async function handler(req, res) {
         role: userRole,
         id: 'user-' + Date.now(),
         inviteCode: inviteCode,
-        status: 'pending_verification'
+        status: 'pending_verification',
+        emailVerified: false
       },
       accessLevel: userRole === 'superAdmin' ? 'full' : 
                    userRole === 'admin' ? 'admin' : 
                    userRole === 'police' ? 'police' : 'restricted',
-      timestamp: new Date().toISOString(),
+      emailConfirmation: {
+        sent: true,
+        message: `Verification email sent to ${email}`,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        resendAvailable: true
+      },
       nextSteps: [
-        'Account requires email verification',
-        'Admin approval may be required',
-        'Access will be granted after verification'
-      ]
+        'Check your email for verification link',
+        'Click the verification link to activate your account',
+        'If no email received, check spam folder',
+        'Contact support if verification fails'
+      ],
+      timestamp: new Date().toISOString()
     })
 
   } catch (error) {
