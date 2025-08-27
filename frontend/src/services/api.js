@@ -66,6 +66,16 @@ class ApiService {
       body: JSON.stringify({ email })
     }),
 
+    verifyEmail: (verificationData) => this.request('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(verificationData)
+    }),
+
+    resendVerification: (emailData) => this.request('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify(emailData)
+    }),
+
     verifyToken: () => this.request('/auth/verify')
   }
 

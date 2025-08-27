@@ -13,6 +13,7 @@ const ReportIncident = lazy(() => import('./pages/ReportIncident'))
 const IncidentMap = lazy(() => import('./pages/IncidentMap'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'))
+const EmailVerification = lazy(() => import('./pages/EmailVerification'))
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/map" element={<IncidentMap />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
+            <Route path="/verify-email" element={<EmailVerification />} />
           </Routes>
         </Suspense>
       </Layout>

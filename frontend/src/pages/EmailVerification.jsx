@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Mail, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import { Mail, CheckCircle, AlertCircle, RefreshCw, Key, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import apiService from '../services/api'
 
@@ -8,18 +8,22 @@ const EmailVerification = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const [verificationToken, setVerificationToken] = useState('')
   const [isResending, setIsResending] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
   const [resendDisabled, setResendDisabled] = useState(false)
   const [countdown, setCountdown] = useState(0)
+  const [showManualVerification, setShowManualVerification] = useState(false)
 
   useEffect(() => {
     if (location.state?.email) {
       setEmail(location.state.email)
-    } else {
-      // If no email in state, redirect to registration
-      navigate('/register')
     }
-  }, [location.state, navigate])
+    if (location.state?.verificationToken) {
+      setVerificationToken(location.state.verificationToken)
+      setShowManualVerification(true)
+    }
+  }, [location.state])
 
   useEffect(() => {
     let timer
@@ -42,12 +46,47 @@ const EmailVerification = () => {
         toast.success('Verification email resent! Check your inbox.')
         setResendDisabled(true)
         setCountdown(300) // 5 minutes cooldown
+        
+        // Update verification token if provided
+        if (response.verificationToken) {
+          setVerificationToken(response.verificationToken)
+          setShowManualVerification(true)
+        }
       }
     } catch (error) {
       toast.error('Failed to resend verification email. Please try again.')
     } finally {
       setIsResending(false)
     }
+  }
+
+  const handleManualVerification = async () => {
+    if (!verificationToken.trim()) {
+      toast.error('Please enter the verification token')
+      return
+    }
+
+    setIsVerifying(true)
+    try {
+      const response = await apiService.auth.verifyEmail({ 
+        email, 
+        verificationToken: verificationToken.trim() 
+      })
+      
+      if (response.message) {
+        toast.success('Email verified successfully! You can now log in.')
+        navigate('/login')
+      }
+    } catch (error) {
+      toast.error(error.message || 'Verification failed. Please check your token.')
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  const copyToken = () => {
+    navigator.clipboard.writeText(verificationToken)
+    toast.success('Token copied to clipboard!')
   }
 
   const handleGoToLogin = () => {
@@ -98,6 +137,46 @@ const EmailVerification = () => {
             </p>
           </div>
 
+          {/* Manual Verification Section */}
+          {showManualVerification && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <div className="flex items-start space-x-3">
+                <Key className="h-5 w-5 text-blue-400 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-800">
+                    Manual Verification Available
+                  </h4>
+                  <p className="mt-1 text-sm text-blue-700">
+                    If you didn't receive the email, you can verify manually using this token:
+                  </p>
+                  <div className="mt-3 flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={verificationToken}
+                      onChange={(e) => setVerificationToken(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-blue-300 rounded-md text-sm font-mono bg-white"
+                      placeholder="Enter verification token"
+                    />
+                    <button
+                      onClick={copyToken}
+                      className="p-2 text-blue-600 hover:text-blue-800"
+                      title="Copy token"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleManualVerification}
+                    disabled={isVerifying || !verificationToken.trim()}
+                    className="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isVerifying ? 'Verifying...' : 'Verify Email'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
@@ -133,7 +212,7 @@ const EmailVerification = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-700">
-                  Return here and sign in to your verified account
+                  Or use the manual verification token above
                 </p>
               </div>
             </div>
@@ -150,6 +229,7 @@ const EmailVerification = () => {
                   <p>• Check your spam/junk folder</p>
                   <p>• Make sure the email address is correct</p>
                   <p>• Wait a few minutes for delivery</p>
+                  <p>• Use manual verification token above</p>
                 </div>
               </div>
             </div>
