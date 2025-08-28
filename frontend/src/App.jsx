@@ -9,7 +9,6 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import IncidentMap from './pages/IncidentMap'
 import AdminDashboard from './pages/AdminDashboard'
-import VerifyEmail from './pages/VerifyEmail'
 import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
 
@@ -23,7 +22,6 @@ function App() {
             <Route path="/" element={<Layout><Home /></Layout>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
             
             {/* Protected Routes */}
             <Route 
