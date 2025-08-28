@@ -468,6 +468,72 @@ class DatabaseService {
       return { data: null, error }
     }
   }
+
+  // ===== TESTING FUNCTIONS =====
+  
+  async testConnection() {
+    try {
+      // Test basic connection by trying to access a table
+      const { data, error } = await this.supabase
+        .from('users')
+        .select('count')
+        .limit(1)
+      
+      if (error) {
+        // If users table doesn't exist, try a different approach
+        const { data: testData, error: testError } = await this.supabase
+          .rpc('version')
+        
+        if (testError) {
+          return { error: 'Database connection failed', details: testError }
+        }
+        
+        return { 
+          success: true, 
+          message: 'Database connected but tables may not exist',
+          version: testData
+        }
+      }
+      
+      return { 
+        success: true, 
+        message: 'Database connection successful',
+        tableAccess: true
+      }
+    } catch (error) {
+      return { error: 'Connection test failed', details: error.message }
+    }
+  }
+
+  async checkTables() {
+    try {
+      const tables = ['users', 'incidents', 'files']
+      const results = {}
+      
+      for (const table of tables) {
+        try {
+          const { data, error } = await this.supabase
+            .from(table)
+            .select('count')
+            .limit(1)
+          
+          results[table] = {
+            exists: !error,
+            error: error ? error.message : null
+          }
+        } catch (err) {
+          results[table] = {
+            exists: false,
+            error: err.message
+          }
+        }
+      }
+      
+      return results
+    } catch (error) {
+      return { error: 'Table check failed', details: error.message }
+    }
+  }
 }
 
 // Export singleton instance

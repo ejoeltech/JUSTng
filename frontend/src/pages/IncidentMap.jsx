@@ -221,12 +221,15 @@ const IncidentMap = () => {
   const fetchIncidents = async () => {
     try {
       setLoading(true)
+      console.log('Fetching incidents...')
       
       // Get incidents based on user role
       const result = await apiService.incidents.getAll({
         ...filters,
         limit: 1000 // Get more incidents for map
       })
+
+      console.log('Incidents API response:', result)
 
       if (result.incidents) {
         setIncidents(result.incidents)
@@ -244,10 +247,33 @@ const IncidentMap = () => {
             setMapZoom(8)
           }
         }
+      } else {
+        console.warn('No incidents data in response:', result)
+        setIncidents([])
       }
     } catch (error) {
       console.error('Error fetching incidents:', error)
-      toast.error('Failed to load incidents')
+      
+      // More detailed error logging
+      if (error.message) {
+        console.error('Error message:', error.message)
+      }
+      if (error.stack) {
+        console.error('Error stack:', error.stack)
+      }
+      
+      // Show specific error message to user
+      let errorMessage = 'Failed to load map data'
+      if (error.message.includes('401')) {
+        errorMessage = 'Authentication failed. Please log in again.'
+      } else if (error.message.includes('500')) {
+        errorMessage = 'Server error. Please try again later.'
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error. Please check your connection.'
+      }
+      
+      toast.error(errorMessage)
+      setIncidents([])
     } finally {
       setLoading(false)
     }
@@ -450,6 +476,20 @@ const IncidentMap = () => {
             <div className="text-center">
               <RefreshCw className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-4" />
               <p className="text-gray-600">Loading incidents...</p>
+            </div>
+          </div>
+        ) : incidents.length === 0 ? (
+          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-20">
+            <div className="text-center">
+              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Incidents Found</h3>
+              <p className="text-gray-600 mb-4">There are no incidents to display on the map.</p>
+              <button
+                onClick={fetchIncidents}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              >
+                Refresh
+              </button>
             </div>
           </div>
         ) : (
