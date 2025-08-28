@@ -130,7 +130,9 @@ class ApiService {
     changePassword: (passwordData) => this.request('/users/change-password', {
       method: 'PUT',
       body: JSON.stringify(passwordData)
-    })
+    }),
+
+    getStats: (timeframe = '30') => this.request(`/users/stats?timeframe=${timeframe}`)
   }
 
   // Admin endpoints

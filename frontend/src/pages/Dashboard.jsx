@@ -1,348 +1,413 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { 
-  Shield, 
-  Map, 
-  FileText, 
   AlertTriangle, 
   Clock, 
   CheckCircle, 
-  XCircle,
-  Plus,
+  FileText, 
+  MapPin, 
+  TrendingUp,
+  Filter,
+  Search,
+  Calendar,
+  BarChart3,
   Eye,
-  Settings
+  Edit,
+  Trash2,
+  Plus,
+  RefreshCw
 } from 'lucide-react'
-import OfflineQueueManager from '../components/OfflineQueueManager'
+import apiService from '../services/api'
+import { toast } from 'react-hot-toast'
 
 const Dashboard = () => {
-  const { user, userRole } = useAuth()
-  const [stats, setStats] = useState({
-    totalIncidents: 0,
-    pendingIncidents: 0,
-    resolvedIncidents: 0,
-    recentIncidents: []
+  const { user, userRole, canAccessAdmin } = useAuth()
+  const [incidents, setIncidents] = useState([])
+  const [stats, setStats] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState({
+    status: '',
+    severity: '',
+    category: '',
+    search: ''
   })
-  const [isLoading, setIsLoading] = useState(true)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalIncidents: 0
+  })
 
+  // Fetch user's incidents and statistics
   useEffect(() => {
-    // TODO: Fetch user stats from API
-    // For now, using mock data
-    setTimeout(() => {
-      setStats({
-        totalIncidents: 12,
-        pendingIncidents: 3,
-        resolvedIncidents: 9,
-        recentIncidents: [
-          {
-            id: 1,
-            title: 'Police harassment at Lekki',
-            status: 'investigating',
-            date: '2024-08-23',
-            severity: 'high'
-          },
-          {
-            id: 2,
-            title: 'Unlawful arrest in Victoria Island',
-            status: 'reported',
-            date: '2024-08-22',
-            severity: 'medium'
-          }
-        ]
+    if (user) {
+      fetchUserData()
+    }
+  }, [user, filters, pagination.currentPage])
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch incidents with filters
+      const incidentsResult = await apiService.incidents.getAll({
+        ...filters,
+        page: pagination.currentPage,
+        limit: 10
       })
-      setIsLoading(false)
-    }, 1000)
-  }, [])
+
+      if (incidentsResult.incidents) {
+        setIncidents(incidentsResult.incidents)
+        setPagination(incidentsResult.pagination)
+      }
+
+      // Fetch user statistics
+      const statsResult = await apiService.users.getStats()
+      if (statsResult.data) {
+        setStats(statsResult.data)
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      toast.error('Failed to load dashboard data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
+  const handlePageChange = (page) => {
+    setPagination(prev => ({ ...prev, currentPage: page }))
+  }
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'reported':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'investigating':
-        return 'bg-blue-100 text-blue-800'
-      case 'resolved':
-        return 'bg-green-100 text-green-800'
-      case 'closed':
-        return 'bg-gray-100 text-gray-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
+    const colors = {
+      reported: 'bg-blue-100 text-blue-800',
+      investigating: 'bg-yellow-100 text-yellow-800',
+      under_review: 'bg-orange-100 text-orange-800',
+      resolved: 'bg-green-100 text-green-800',
+      closed: 'bg-gray-100 text-gray-800'
     }
+    return colors[status] || 'bg-gray-100 text-gray-800'
   }
 
   const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'low':
-        return 'bg-green-100 text-green-800'
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'high':
-        return 'bg-orange-100 text-orange-800'
-      case 'critical':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
+    const colors = {
+      low: 'bg-green-100 text-green-800',
+      medium: 'bg-yellow-100 text-yellow-800',
+      high: 'bg-orange-100 text-orange-800',
+      critical: 'bg-red-100 text-red-800'
     }
+    return colors[severity] || 'bg-gray-100 text-gray-800'
   }
 
-  if (isLoading) {
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-NG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  if (!user) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+          <p className="text-gray-600">Please log in to access your dashboard.</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Offline Queue Manager */}
-      <OfflineQueueManager />
-      
-      {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Welcome back, {user?.email?.split('@')[0]}!
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Here's what's happening with your reports and the community.
-            </p>
-          </div>
-          <div className="flex space-x-3">
-            <Link
-              to="/report"
-              className="btn-primary flex items-center"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Report Incident
-            </Link>
-            <Link
-              to="/map"
-              className="btn-secondary flex items-center"
-            >
-              <Map className="h-4 w-4 mr-2" />
-              View Map
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Total Incidents
-                </dt>
-                <dd className="text-lg font-medium text-gray-900">
-                  {stats.totalIncidents}
-                </dd>
-              </dl>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.fullName || user.email?.split('@')[0]}!</h1>
+          <p className="text-gray-600 mt-2">Here's what's happening with your incidents</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Clock className="h-8 w-8 text-yellow-600" />
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Incidents</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalIncidents || 0}</p>
+              </div>
             </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Pending
-                </dt>
-                <dd className="text-lg font-medium text-gray-900">
-                  {stats.pendingIncidents}
-                </dd>
-              </dl>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Active Cases</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.activeIncidents || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Resolved</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.resolvedIncidents || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Recent Activity</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.recentActivity || 0}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Resolved
-                </dt>
-                <dd className="text-lg font-medium text-gray-900">
-                  {stats.resolvedIncidents}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Shield className="h-8 w-8 text-primary-600" />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Your Role
-                </dt>
-                <dd className="text-lg font-medium text-gray-900 capitalize">
-                  {userRole}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Incidents */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">
-              Recent Incidents
-            </h3>
-            <Link
-              to="/map"
-              className="text-sm text-primary-600 hover:text-primary-500"
-            >
-              View all
-            </Link>
-          </div>
-        </div>
-        <div className="divide-y divide-gray-200">
-          {stats.recentIncidents.length > 0 ? (
-            stats.recentIncidents.map((incident) => (
-              <div key={incident.id} className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h4 className="text-sm font-medium text-gray-900">
-                        {incident.title}
-                      </h4>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(incident.severity)}`}>
-                        {incident.severity}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{incident.date}</span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(incident.status)}`}>
-                        {incident.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Link
-                      to={`/incident/${incident.id}`}
-                      className="text-primary-600 hover:text-primary-500 p-1"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-                  </div>
+        {/* Filters and Search */}
+        <div className="bg-white rounded-lg shadow mb-8">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search incidents..."
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="px-6 py-8 text-center">
-              <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No incidents yet</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by reporting your first incident.
-              </p>
-              <div className="mt-6">
-                <Link
-                  to="/report"
-                  className="btn-primary"
-                >
-                  Report Incident
-                </Link>
-              </div>
+              
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Status</option>
+                <option value="reported">Reported</option>
+                <option value="investigating">Investigating</option>
+                <option value="under_review">Under Review</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+
+              <select
+                value={filters.severity}
+                onChange={(e) => handleFilterChange('severity', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Severity</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+
+              <button
+                onClick={fetchUserData}
+                disabled={loading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
+          </div>
+        </div>
+
+        {/* Incidents Table */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">Your Incidents</h3>
+              <button className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                <Plus className="h-4 w-4 inline mr-2" />
+                Report New Incident
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="p-8 text-center">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-4" />
+              <p className="text-gray-600">Loading incidents...</p>
+            </div>
+          ) : incidents.length === 0 ? (
+            <div className="p-8 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No incidents found</h3>
+              <p className="text-gray-600">Start by reporting your first incident.</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Incident
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Severity
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Location
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {incidents.map((incident) => (
+                      <tr key={incident.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{incident.title}</div>
+                            <div className="text-sm text-gray-500">{incident.description.substring(0, 60)}...</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(incident.status)}`}>
+                            {incident.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityColor(incident.severity)}`}>
+                            {incident.severity}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <MapPin className="h-4 w-4 text-gray-400 mr-1" />
+                            {incident.location?.address || 'Location not specified'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(incident.created_at)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <button className="text-primary-600 hover:text-primary-900">
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button className="text-gray-600 hover:text-gray-900">
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button className="text-red-600 hover:text-red-900">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="px-6 py-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      Showing page {pagination.currentPage} of {pagination.totalPages} 
+                      ({pagination.totalIncidents} total incidents)
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handlePageChange(pagination.currentPage - 1)}
+                        disabled={!pagination.hasPrevPage}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => handlePageChange(pagination.currentPage + 1)}
+                        disabled={!pagination.hasNextPage}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link
-            to="/report"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors"
-          >
-            <Plus className="h-6 w-6 text-primary-600 mr-3" />
-            <div>
-              <h4 className="font-medium text-gray-900">Report Incident</h4>
-              <p className="text-sm text-gray-500">Report a new harassment incident</p>
+        {/* Quick Actions */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <button className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
+                Report New Incident
+              </button>
+              <button className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                View Map
+              </button>
+              <button className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                Download Report
+              </button>
             </div>
-          </Link>
+          </div>
 
-          <Link
-            to="/map"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors"
-          >
-            <Map className="h-6 w-6 text-primary-600 mr-3" />
-            <div>
-              <h4 className="font-medium text-gray-900">View Map</h4>
-              <p className="text-sm text-gray-500">See all reported incidents</p>
-            </div>
-          </Link>
-
-          <Link
-            to="/profile"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors"
-          >
-            <Settings className="h-6 w-6 text-primary-600 mr-3" />
-            <div>
-              <h4 className="font-medium text-gray-900">Profile Settings</h4>
-              <p className="text-sm text-gray-500">Update your account</p>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Admin Actions (if applicable) */}
-      {userRole === 'admin' || userRole === 'superadmin' ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Admin Actions
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link
-              to="/admin"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors"
-            >
-              <Shield className="h-6 w-6 text-primary-600 mr-3" />
-              <div>
-                <h4 className="font-medium text-gray-900">Admin Dashboard</h4>
-                <p className="text-sm text-gray-500">Manage incidents and users</p>
-              </div>
-            </Link>
-
-            {userRole === 'superadmin' && (
-              <Link
-                to="/super-admin"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors"
-              >
-                <Settings className="h-6 w-6 text-primary-600 mr-3" />
-                <div>
-                  <h4 className="font-medium text-gray-900">Super Admin</h4>
-                  <p className="text-sm text-gray-500">System configuration</p>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
+            <div className="space-y-3">
+              {incidents.slice(0, 3).map((incident) => (
+                <div key={incident.id} className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 truncate">{incident.title}</p>
+                    <p className="text-xs text-gray-500">{formatDate(incident.created_at)}</p>
+                  </div>
                 </div>
-              </Link>
-            )}
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Need Help?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              If you need assistance or have questions about your incidents, our support team is here to help.
+            </p>
+            <button className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+              Contact Support
+            </button>
           </div>
         </div>
-      ) : null}
+      </div>
     </div>
   )
 }
