@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import IncidentMap from './pages/IncidentMap'
+import ReportIncident from './pages/ReportIncident'
 import AdminDashboard from './pages/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
@@ -38,6 +39,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout><IncidentMap /></Layout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/report" 
+              element={
+                <ProtectedRoute>
+                  <Layout><ReportIncident /></Layout>
                 </ProtectedRoute>
               } 
             />
