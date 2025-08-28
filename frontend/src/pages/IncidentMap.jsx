@@ -1,272 +1,324 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { MapPin, Filter, Search, AlertTriangle, Info, Navigation, Eye } from 'lucide-react'
-import toast from 'react-hot-toast'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet'
+import { Icon, DivIcon } from 'leaflet'
+import { 
+  Filter, 
+  Search, 
+  MapPin, 
+  AlertTriangle, 
+  Clock, 
+  CheckCircle,
+  Eye,
+  Edit,
+  Trash2,
+  Layers,
+  ZoomIn,
+  ZoomOut,
+  RefreshCw,
+  BarChart3,
+  Download,
+  Share2
+} from 'lucide-react'
 import apiService from '../services/api'
+import { toast } from 'react-hot-toast'
+import 'leaflet/dist/leaflet.css'
 
-// Fix for default markers in Leaflet
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+// Custom marker icons
+const createCustomIcon = (severity) => {
+  const colors = {
+    low: '#10B981',
+    medium: '#F59E0B',
+    high: '#F97316',
+    critical: '#EF4444'
+  }
+  
+  return new DivIcon({
+    html: `
+      <div style="
+        background-color: ${colors[severity] || '#6B7280'};
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 10px;
+      ">
+        ${severity.charAt(0).toUpperCase()}
+      </div>
+    `,
+    className: 'custom-marker',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  })
+}
 
+// Map controls component
+const MapControls = ({ onZoomIn, onZoomOut, onResetView, onToggleLayers }) => {
+  return (
+    <div className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-lg p-2">
+      <div className="flex flex-col space-y-2">
+        <button
+          onClick={onZoomIn}
+          className="p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </button>
+        <button
+          onClick={onZoomOut}
+          className="p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </button>
+        <button
+          onClick={onResetView}
+          className="p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          title="Reset View"
+        >
+          <Layers className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Legend component
+const MapLegend = ({ filters, onFilterChange }) => {
+  const severityColors = {
+    low: '#10B981',
+    medium: '#F59E0B',
+    high: '#F97316',
+    critical: '#EF4444'
+  }
+
+  const statusColors = {
+    reported: '#3B82F6',
+    investigating: '#F59E0B',
+    under_review: '#F97316',
+    resolved: '#10B981',
+    closed: '#6B7280'
+  }
+
+  return (
+    <div className="absolute bottom-4 left-4 z-10 bg-white rounded-lg shadow-lg p-4 max-w-xs">
+      <h3 className="font-semibold text-gray-900 mb-3">Map Legend</h3>
+      
+      {/* Severity Legend */}
+      <div className="mb-4">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Severity</h4>
+        <div className="space-y-2">
+          {Object.entries(severityColors).map(([severity, color]) => (
+            <div key={severity} className="flex items-center space-x-2">
+              <div
+                className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-sm text-gray-600 capitalize">{severity}</span>
+              <input
+                type="checkbox"
+                checked={!filters.severity || filters.severity === severity}
+                onChange={() => onFilterChange('severity', filters.severity === severity ? '' : severity)}
+                className="ml-auto"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Status Legend */}
+      <div className="mb-4">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Status</h4>
+        <div className="space-y-2">
+          {Object.entries(statusColors).map(([status, color]) => (
+            <div key={status} className="flex items-center space-x-2">
+              <div
+                className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-sm text-gray-600 capitalize">{status.replace('_', ' ')}</span>
+              <input
+                type="checkbox"
+                checked={!filters.status || filters.status === status}
+                onChange={() => onFilterChange('status', filters.status === status ? '' : status)}
+                className="ml-auto"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="pt-2 border-t border-gray-200">
+        <button
+          onClick={() => onFilterChange('reset')}
+          className="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+        >
+          Clear All Filters
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Incident Map component
 const IncidentMap = () => {
-  const { user } = useAuth()
+  const { user, userRole } = useAuth()
   const [incidents, setIncidents] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [filteredIncidents, setFilteredIncidents] = useState([])
+  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     status: '',
     severity: '',
-    incident_type: '',
-    state: '',
-    lga: '',
-    date_range: '30'
+    category: '',
+    search: '',
+    dateRange: '30' // days
   })
-  const [states, setStates] = useState([])
-  const [lgas, setLgas] = useState([])
-  const [selectedIncident, setSelectedIncident] = useState(null)
   const [mapCenter, setMapCenter] = useState([9.0820, 8.6753]) // Nigeria center
-  const [userLocation, setUserLocation] = useState(null)
-  const [mapInstance, setMapInstance] = useState(null)
-  const [markers, setMarkers] = useState([])
-  
+  const [mapZoom, setMapZoom] = useState(6)
+  const [selectedIncident, setSelectedIncident] = useState(null)
+  const [showFilters, setShowFilters] = useState(false)
   const mapRef = useRef(null)
-  const mapContainerRef = useRef(null)
 
-  // Fetch data from API
+  // Fetch incidents from database
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-        
-        // Fetch incidents from API
-        const incidentsData = await apiService.incidents.getAll(filters)
-        setIncidents(incidentsData.incidents || incidentsData || [])
+    if (user) {
+      fetchIncidents()
+    }
+  }, [user, filters])
 
-        // TODO: Fetch states and LGAs from API when available
-        // For now, use mock data
-        setStates([
-          { id: 1, name: 'Lagos', code: 'LA' },
-          { id: 2, name: 'Kano', code: 'KN' },
-          { id: 3, name: 'Rivers', code: 'RI' },
-          { id: 4, name: 'Kaduna', code: 'KD' },
-          { id: 5, name: 'Katsina', code: 'KT' }
-        ])
-        
-        setLgas([
-          { id: 1, name: 'Ikeja', state_id: 1 },
-          { id: 2, name: 'Victoria Island', state_id: 1 },
-          { id: 3, name: 'Municipal', state_id: 2 },
-          { id: 4, name: 'Port Harcourt', state_id: 3 },
-          { id: 5, name: 'Kaduna North', state_id: 4 }
-        ])
-        
-        // setIncidents already set above from API call
-        setIsLoading(false)
-      } catch (error) {
-        console.error('Error fetching data:', error)
-        toast.error('Failed to load map data')
-        setIsLoading(false)
-      }
+  // Filter incidents based on current filters
+  useEffect(() => {
+    let filtered = [...incidents]
+
+    if (filters.status) {
+      filtered = filtered.filter(incident => incident.status === filters.status)
+    }
+    if (filters.severity) {
+      filtered = filtered.filter(incident => incident.severity === filters.severity)
+    }
+    if (filters.category) {
+      filtered = filtered.filter(incident => incident.category === filters.category)
+    }
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase()
+      filtered = filtered.filter(incident => 
+        incident.title.toLowerCase().includes(searchTerm) ||
+        incident.description.toLowerCase().includes(searchTerm) ||
+        incident.location?.address?.toLowerCase().includes(searchTerm)
+      )
     }
 
-    fetchData()
-  }, [])
+    setFilteredIncidents(filtered)
+  }, [incidents, filters])
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapInstance) return
-
-    const map = L.map(mapContainerRef.current).setView(mapCenter, 6)
-    
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map)
-
-    // Add scale control
-    L.control.scale().addTo(map)
-
-    setMapInstance(map)
-    mapRef.current = map
-
-    return () => {
-      if (map) {
-        map.remove()
-      }
-    }
-  }, [mapCenter, mapInstance])
-
-  // Update markers when incidents change
-  useEffect(() => {
-    if (!mapInstance || !incidents.length) return
-
-    // Clear existing markers
-    markers.forEach(marker => marker.remove())
-    const newMarkers = []
-
-    // Filter incidents based on current filters
-    const filteredIncidents = incidents.filter(incident => {
-      if (filters.status && incident.status !== filters.status) return false
-      if (filters.severity && incident.severity !== filters.severity) return false
-      if (filters.incident_type && incident.incident_type !== filters.incident_type) return false
-      if (filters.date_range) {
-        const days = parseInt(filters.date_range)
-        const cutoffDate = new Date()
-        cutoffDate.setDate(cutoffDate.getDate() - days)
-        if (new Date(incident.created_at) < cutoffDate) return false
-      }
-      return true
-    })
-
-    // Create markers for filtered incidents
-    filteredIncidents.forEach(incident => {
-      const markerColor = getSeverityColor(incident.severity)
-      const customIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div class="w-6 h-6 rounded-full ${markerColor} border-2 border-white shadow-lg flex items-center justify-center">
-                 <div class="w-2 h-2 bg-white rounded-full"></div>
-               </div>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+  const fetchIncidents = async () => {
+    try {
+      setLoading(true)
+      
+      // Get incidents based on user role
+      const result = await apiService.incidents.getAll({
+        ...filters,
+        limit: 1000 // Get more incidents for map
       })
 
-      const marker = L.marker([incident.latitude, incident.longitude], { icon: customIcon })
-        .addTo(mapInstance)
-        .bindPopup(createPopupContent(incident))
-
-      marker.on('click', () => {
-        setSelectedIncident(incident)
-      })
-
-      newMarkers.push(marker)
-    })
-
-    setMarkers(newMarkers)
-
-    // Fit map to show all markers
-    if (newMarkers.length > 0) {
-      const group = new L.featureGroup(newMarkers)
-      mapInstance.fitBounds(group.getBounds().pad(0.1))
-    }
-  }, [mapInstance, incidents, filters, markers])
-
-  // Create popup content for markers
-  const createPopupContent = (incident) => {
-    return `
-      <div class="p-3 max-w-xs">
-        <h3 class="font-semibold text-gray-900 mb-2">${incident.title}</h3>
-        <p class="text-sm text-gray-600 mb-3">${incident.description}</p>
-        <div class="flex items-center justify-between text-xs">
-          <span class="px-2 py-1 rounded-full text-white ${getSeverityColor(incident.severity)}">
-            ${incident.severity}
-          </span>
-          <span class="px-2 py-1 rounded-full text-white ${getStatusColor(incident.status)}">
-            ${incident.status}
-          </span>
-        </div>
-        <div class="mt-2 text-xs text-gray-500">
-          <p>By: ${incident.user.full_name}</p>
-          <p>${new Date(incident.created_at).toLocaleDateString()}</p>
-        </div>
-      </div>
-    `
-  }
-
-  // Get user's current location
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation not supported')
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords
-        setUserLocation({ latitude, longitude })
-        setMapCenter([latitude, longitude])
+      if (result.incidents) {
+        setIncidents(result.incidents)
         
-        if (mapInstance) {
-          mapInstance.setView([latitude, longitude], 12)
+        // Update map center if incidents exist
+        if (result.incidents.length > 0) {
+          const validLocations = result.incidents.filter(incident => 
+            incident.location && incident.location.lat && incident.location.lng
+          )
           
-          // Add user location marker
-          const userMarker = L.marker([latitude, longitude], {
-            icon: L.divIcon({
-              className: 'user-location-marker',
-              html: `<div class="w-8 h-8 rounded-full bg-blue-500 border-4 border-white shadow-lg flex items-center justify-center">
-                       <div class="w-3 h-3 bg-white rounded-full"></div>
-                     </div>`,
-              iconSize: [32, 32],
-              iconAnchor: [16, 16]
-            })
-          }).addTo(mapInstance)
-
-          // Add user location popup
-          userMarker.bindPopup('<div class="p-2"><strong>Your Location</strong></div>')
+          if (validLocations.length > 0) {
+            const avgLat = validLocations.reduce((sum, incident) => sum + incident.location.lat, 0) / validLocations.length
+            const avgLng = validLocations.reduce((sum, incident) => sum + incident.location.lng, 0) / validLocations.length
+            setMapCenter([avgLat, avgLng])
+            setMapZoom(8)
+          }
         }
-        
-        toast.success('Location updated')
-      },
-      (error) => {
-        toast.error('Failed to get location')
       }
-    )
-  }
-
-  // Filter incidents
-  const filteredIncidents = incidents.filter(incident => {
-    if (filters.status && incident.status !== filters.status) return false
-    if (filters.severity && incident.severity !== filters.severity) return false
-    if (filters.incident_type && incident.incident_type !== filters.incident_type) return false
-    if (filters.state) {
-      // TODO: Implement state filtering logic
-    }
-    if (filters.date_range) {
-      const days = parseInt(filters.date_range)
-      const cutoffDate = new Date()
-      cutoffDate.setDate(cutoffDate.getDate() - days)
-      if (new Date(incident.created_at) < cutoffDate) return false
-    }
-    return true
-  })
-
-  // Handle filter changes
-  const handleFilterChange = (name, value) => {
-    setFilters(prev => ({ ...prev, [name]: value }))
-  }
-
-  // Get severity color
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'low': return 'bg-green-500'
-      case 'medium': return 'bg-yellow-500'
-      case 'high': return 'bg-orange-500'
-      case 'critical': return 'bg-red-500'
-      default: return 'bg-gray-500'
+    } catch (error) {
+      console.error('Error fetching incidents:', error)
+      toast.error('Failed to load incidents')
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Get status color
+  const handleFilterChange = (key, value) => {
+    if (key === 'reset') {
+      setFilters({
+        status: '',
+        severity: '',
+        category: '',
+        search: '',
+        dateRange: '30'
+      })
+    } else {
+      setFilters(prev => ({ ...prev, [key]: value }))
+    }
+  }
+
+  const handleIncidentClick = (incident) => {
+    setSelectedIncident(incident)
+    
+    // Center map on incident
+    if (incident.location && incident.location.lat && incident.location.lng) {
+      setMapCenter([incident.location.lat, incident.location.lng])
+      setMapZoom(14)
+    }
+  }
+
+  const handleMapZoomIn = () => {
+    if (mapRef.current) {
+      mapRef.current.setZoom(mapRef.current.getZoom() + 1)
+    }
+  }
+
+  const handleMapZoomOut = () => {
+    if (mapRef.current) {
+      mapRef.current.setZoom(mapRef.current.getZoom() - 1)
+    }
+  }
+
+  const handleResetView = () => {
+    setMapCenter([9.0820, 8.6753])
+    setMapZoom(6)
+  }
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-NG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'reported': return 'bg-blue-500'
-      case 'investigating': return 'bg-yellow-500'
-      case 'resolved': return 'bg-green-500'
-      case 'closed': return 'bg-gray-500'
-      default: return 'bg-gray-500'
+    const colors = {
+      reported: '#3B82F6',
+      investigating: '#F59E0B',
+      under_review: '#F97316',
+      resolved: '#10B981',
+      closed: '#6B7280'
     }
+    return colors[status] || '#6B7280'
   }
 
-  if (isLoading) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading map...</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+          <p className="text-gray-600">Please log in to view the incident map.</p>
         </div>
       </div>
     )
@@ -275,317 +327,302 @@ const IncidentMap = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Incident Map
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-900">Incident Map</h1>
               <p className="text-gray-600 mt-1">
-                View and track harassment incidents across Nigeria
+                View and analyze incidents across Nigeria
               </p>
             </div>
-            <button
-              onClick={getCurrentLocation}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              <Navigation className="h-4 w-4" />
-              <span>My Location</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border p-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Filter className="h-5 w-5 text-gray-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-              </div>
-
-              <div className="space-y-4">
-                {/* Status Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="reported">Reported</option>
-                    <option value="investigating">Investigating</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                </div>
-
-                {/* Severity Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Severity
-                  </label>
-                  <select
-                    value={filters.severity}
-                    onChange={(e) => handleFilterChange('severity', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
-                  >
-                    <option value="">All Severities</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
-                </div>
-
-                {/* Incident Type Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Incident Type
-                  </label>
-                  <select
-                    value={filters.incident_type}
-                    onChange={(e) => handleFilterChange('incident_type', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
-                  >
-                    <option value="">All Types</option>
-                    <option value="harassment">Harassment</option>
-                    <option value="assault">Assault</option>
-                    <option value="extortion">Extortion</option>
-                    <option value="unlawful_arrest">Unlawful Arrest</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                {/* State Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    State
-                  </label>
-                  <select
-                    value={filters.state}
-                    onChange={(e) => handleFilterChange('state', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
-                  >
-                    <option value="">All States</option>
-                    {states.map(state => (
-                      <option key={state.id} value={state.id}>
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Date Range Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date Range
-                  </label>
-                  <select
-                    value={filters.date_range}
-                    onChange={(e) => handleFilterChange('date_range', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
-                  >
-                    <option value="7">Last 7 days</option>
-                    <option value="30">Last 30 days</option>
-                    <option value="90">Last 3 months</option>
-                    <option value="365">Last year</option>
-                    <option value="">All time</option>
-                  </select>
-                </div>
-
-                {/* Clear Filters */}
-                <button
-                  onClick={() => setFilters({
-                    status: '',
-                    severity: '',
-                    incident_type: '',
-                    state: '',
-                    lga: '',
-                    date_range: '30'
-                  })}
-                  className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
-                >
-                  Clear Filters
-                </button>
-              </div>
-            </div>
-
-            {/* Statistics */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 mt-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Incidents:</span>
-                  <span className="font-semibold">{filteredIncidents.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">High Priority:</span>
-                  <span className="font-semibold text-red-600">
-                    {filteredIncidents.filter(i => i.severity === 'high' || i.severity === 'critical').length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Under Investigation:</span>
-                  <span className="font-semibold text-yellow-600">
-                    {filteredIncidents.filter(i => i.status === 'investigating').length}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 mt-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Legend</h3>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-gray-600">Low Severity</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm text-gray-600">Medium Severity</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded-full bg-orange-500"></div>
-                  <span className="text-sm text-gray-600">High Severity</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                  <span className="text-sm text-gray-600">Critical Severity</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                  <span className="text-sm text-gray-600">Your Location</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Map Area */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              {/* Interactive Map */}
-              <div 
-                ref={mapContainerRef} 
-                className="h-96 w-full"
-                style={{ minHeight: '400px' }}
-              ></div>
-
-              {/* Incident List Below Map */}
-              <div className="p-4 border-t">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Recent Incidents ({filteredIncidents.length})
-                </h3>
-                
-                {filteredIncidents.length === 0 ? (
-                  <div className="text-center py-8">
-                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No incidents found with current filters</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredIncidents.map(incident => (
-                      <div
-                        key={incident.id}
-                        className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => setSelectedIncident(incident)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {incident.title}
-                            </h4>
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                              {incident.description}
-                            </p>
-                            <div className="flex items-center space-x-4 text-xs text-gray-500">
-                              <span>By: {incident.user.full_name}</span>
-                              <span>{new Date(incident.created_at).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end space-y-2">
-                            <div className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getSeverityColor(incident.severity)}`}>
-                              {incident.severity}
-                            </div>
-                            <div className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getStatusColor(incident.status)}`}>
-                              {incident.status}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Incident Detail Modal */}
-      {selectedIncident && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-96 overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Incident Details
-                </h3>
-                <button
-                  onClick={() => setSelectedIncident(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
-              </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </button>
               
-              <div className="space-y-3">
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Title:</span>
-                  <p className="text-gray-900">{selectedIncident.title}</p>
+              <button
+                onClick={fetchIncidents}
+                disabled={loading}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Panel */}
+      {showFilters && (
+        <div className="bg-white border-b border-gray-200 px-4 py-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search incidents..."
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
                 </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Description:</span>
-                  <p className="text-gray-900">{selectedIncident.description}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Status:</span>
-                    <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getStatusColor(selectedIncident.status)}`}>
-                      {selectedIncident.status}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Severity:</span>
-                    <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getSeverityColor(selectedIncident.severity)}`}>
-                      {selectedIncident.severity}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Location:</span>
-                  <p className="text-gray-900">
-                    {selectedIncident.address || `${selectedIncident.latitude.toFixed(6)}, ${selectedIncident.longitude.toFixed(6)}`}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Reported:</span>
-                  <p className="text-gray-900">
-                    {new Date(selectedIncident.created_at).toLocaleString()}
-                  </p>
-                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">All Status</option>
+                  <option value="reported">Reported</option>
+                  <option value="investigating">Investigating</option>
+                  <option value="under_review">Under Review</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Severity</label>
+                <select
+                  value={filters.severity}
+                  onChange={(e) => handleFilterChange('severity', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">All Severity</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={filters.category}
+                  onChange={(e) => handleFilterChange('category', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">All Categories</option>
+                  <option value="harassment">Harassment</option>
+                  <option value="assault">Assault</option>
+                  <option value="extortion">Extortion</option>
+                  <option value="corruption">Corruption</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+                <select
+                  value={filters.dateRange}
+                  onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                  <option value="365">Last year</option>
+                </select>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Map Container */}
+      <div className="relative h-[calc(100vh-200px)]">
+        {loading ? (
+          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-20">
+            <div className="text-center">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-4" />
+              <p className="text-gray-600">Loading incidents...</p>
+            </div>
+          </div>
+        ) : (
+          <MapContainer
+            center={mapCenter}
+            zoom={mapZoom}
+            className="h-full w-full"
+            ref={mapRef}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+
+            {/* Render incident markers */}
+            {filteredIncidents.map((incident) => {
+              if (!incident.location || !incident.location.lat || !incident.location.lng) {
+                return null
+              }
+
+              return (
+                <Marker
+                  key={incident.id}
+                  position={[incident.location.lat, incident.location.lng]}
+                  icon={createCustomIcon(incident.severity)}
+                  eventHandlers={{
+                    click: () => handleIncidentClick(incident)
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2 min-w-[250px]">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900 text-sm">
+                          {incident.title}
+                        </h3>
+                        <span
+                          className="inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white"
+                          style={{ backgroundColor: getStatusColor(incident.status) }}
+                        >
+                          {incident.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      
+                      <p className="text-gray-600 text-sm mb-2">
+                        {incident.description.substring(0, 100)}...
+                      </p>
+                      
+                      <div className="space-y-1 text-xs text-gray-500">
+                        <div className="flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {incident.location.address || 'Location not specified'}
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatDate(incident.created_at)}
+                        </div>
+                        <div className="flex items-center">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Severity: {incident.severity}
+                        </div>
+                      </div>
+                      
+                      <div className="flex space-x-2 mt-3 pt-2 border-t border-gray-200">
+                        <button className="text-primary-600 hover:text-primary-800 text-xs">
+                          <Eye className="h-3 w-3 inline mr-1" />
+                          View
+                        </button>
+                        {userRole === 'admin' || userRole === 'superAdmin' ? (
+                          <>
+                            <button className="text-gray-600 hover:text-gray-800 text-xs">
+                              <Edit className="h-3 w-3 inline mr-1" />
+                              Edit
+                            </button>
+                            <button className="text-red-600 hover:text-red-800 text-xs">
+                              <Trash2 className="h-3 w-3 inline mr-1" />
+                              Delete
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              )
+            })}
+
+            {/* Map Controls */}
+            <MapControls
+              onZoomIn={handleMapZoomIn}
+              onZoomOut={handleMapZoomOut}
+              onResetView={handleResetView}
+            />
+          </MapContainer>
+        )}
+
+        {/* Legend */}
+        <MapLegend filters={filters} onFilterChange={handleFilterChange} />
+
+        {/* Incident Details Sidebar */}
+        {selectedIncident && (
+          <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-4 max-w-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900">Incident Details</h3>
+              <button
+                onClick={() => setSelectedIncident(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-medium text-gray-900">{selectedIncident.title}</h4>
+                <p className="text-sm text-gray-600">{selectedIncident.description}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">Status:</span>
+                  <span className="ml-2 font-medium">{selectedIncident.status}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Severity:</span>
+                  <span className="ml-2 font-medium">{selectedIncident.severity}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Category:</span>
+                  <span className="ml-2 font-medium">{selectedIncident.category}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Date:</span>
+                  <span className="ml-2 font-medium">{formatDate(selectedIncident.created_at)}</span>
+                </div>
+              </div>
+              
+              <div className="pt-2 border-t border-gray-200">
+                <button className="w-full px-3 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm">
+                  View Full Details
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Statistics Bar */}
+      <div className="bg-white border-t border-gray-200 px-4 py-3">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center space-x-6">
+              <span>Total Incidents: <strong>{filteredIncidents.length}</strong></span>
+              <span>Filtered: <strong>{filteredIncidents.length}</strong></span>
+              <span>Map Zoom: <strong>{mapZoom}</strong></span>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <button className="flex items-center text-gray-600 hover:text-gray-800">
+                <BarChart3 className="h-4 w-4 mr-1" />
+                Analytics
+              </button>
+              <button className="flex items-center text-gray-600 hover:text-gray-800">
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </button>
+              <button className="flex items-center text-gray-600 hover:text-gray-800">
+                <Share2 className="h-4 w-4 mr-1" />
+                Share
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
