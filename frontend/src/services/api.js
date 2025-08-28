@@ -59,34 +59,34 @@ class ApiService {
     }
   }
 
-  // Authentication endpoints
+  // Authentication endpoints (consolidated)
   auth = {
-    register: (userData) => this.request('/auth/register', {
+    register: (userData) => this.request('/auth?action=register', {
       method: 'POST',
       body: JSON.stringify(userData)
     }),
 
-    login: (credentials) => this.request('/auth/login', {
+    login: (credentials) => this.request('/auth?action=login', {
       method: 'POST',
       body: JSON.stringify(credentials)
     }),
 
-    resetPassword: (email) => this.request('/auth/reset-password', {
+    resetPassword: (email) => this.request('/auth?action=reset-password', {
       method: 'POST',
       body: JSON.stringify({ email })
     }),
 
-    verifyEmail: (verificationData) => this.request('/auth/verify-email', {
+    verifyEmail: (verificationData) => this.request('/auth?action=verify-email', {
       method: 'POST',
       body: JSON.stringify(verificationData)
     }),
 
-    resendVerification: (emailData) => this.request('/auth/resend-verification', {
+    resendVerification: (emailData) => this.request('/auth?action=resend-verification', {
       method: 'POST',
       body: JSON.stringify(emailData)
     }),
 
-    verifyToken: () => this.request('/auth/verify')
+    verifyToken: () => this.request('/auth?action=verify')
   }
 
   // Incidents endpoints with JWT authentication
@@ -135,19 +135,19 @@ class ApiService {
     getStats: (timeframe = '30') => this.request(`/users/stats?timeframe=${timeframe}`)
   }
 
-  // Admin endpoints
+  // Admin endpoints (consolidated)
   admin = {
     getUsers: (params = {}) => {
       const queryString = new URLSearchParams(params).toString()
-      return this.request(`/admin/users${queryString ? `?${queryString}` : ''}`)
+      return this.request(`/admin?action=users${queryString ? `&${queryString}` : ''}`)
     },
     
-    updateUser: (userId, userData) => this.request(`/admin/users/${userId}`, {
+    updateUser: (userId, userData) => this.request(`/admin?action=user-role`, {
       method: 'PUT',
-      body: JSON.stringify(userData)
+      body: JSON.stringify({ userId, newRole: userData.role })
     }),
     
-    deleteUser: (userId) => this.request(`/admin/users/${userId}`, {
+    deleteUser: (userId) => this.request(`/admin?action=user&userId=${userId}`, {
       method: 'DELETE'
     }),
     
@@ -161,9 +161,24 @@ class ApiService {
       body: JSON.stringify(incidentData)
     }),
     
-    getAnalytics: () => this.request('/admin/analytics'),
+    getAnalytics: () => this.request('/admin?action=analytics'),
     
-    getSystemHealth: () => this.request('/admin/health')
+    getSystemHealth: () => this.request('/admin?action=health'),
+    
+    // Additional admin functions
+    createInviteCode: (inviteData) => this.request('/admin?action=invite-codes', {
+      method: 'POST',
+      body: JSON.stringify(inviteData)
+    }),
+    
+    updateUserStatus: (userId, newStatus) => this.request('/admin?action=user-status', {
+      method: 'PUT',
+      body: JSON.stringify({ userId, newStatus })
+    }),
+    
+    deleteInviteCode: (inviteCode) => this.request(`/admin?action=invite-code&inviteCode=${inviteCode}`, {
+      method: 'DELETE'
+    })
   }
 
   // SuperAdmin endpoints
