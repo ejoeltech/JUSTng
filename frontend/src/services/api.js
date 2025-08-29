@@ -3,8 +3,8 @@ import { supabase } from '../config/supabase'
 // API service with JWT authentication
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
-    console.log('API Service initialized with baseURL:', this.baseURL)
+    this.baseURL = '/api' // Will be set to Vercel Functions URL after deployment
+    console.log('API Service initialized')
   }
 
   // Get auth token from localStorage
