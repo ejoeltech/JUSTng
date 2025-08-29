@@ -352,35 +352,7 @@ const Register = () => {
               )}
             </div>
 
-            <div>
-              <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700">
-                Invite Code
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Key className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="inviteCode"
-                  name="inviteCode"
-                  type="text"
-                  autoComplete="off"
-                  required
-                  value={formData.inviteCode}
-                  onChange={handleChange}
-                  className={`appearance-none relative block w-full pl-10 pr-3 py-2 border ${
-                    errors.inviteCode ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
-                  placeholder="Enter your invite code"
-                />
-              </div>
-              {errors.inviteCode && (
-                <div className="mt-1 flex items-center text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.inviteCode}
-                </div>
-              )}
-            </div>
+
           </div>
 
           <div>
