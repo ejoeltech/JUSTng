@@ -3,8 +3,11 @@ import { supabase } from '../config/supabase'
 // API service with JWT authentication
 class ApiService {
   constructor() {
-    this.baseURL = '/api' // Will be set to Vercel Functions URL after deployment
-    console.log('API Service initialized')
+    // Use Vercel Functions API (same domain as frontend)
+    this.baseURL = process.env.NODE_ENV === 'production' 
+      ? '/api'  // In production, use relative path for Vercel Functions
+      : 'http://localhost:5000/api'  // In development, use local backend
+    console.log('API Service initialized with baseURL:', this.baseURL)
   }
 
   // Get auth token from localStorage
