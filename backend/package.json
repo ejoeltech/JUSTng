@@ -4,6 +4,10 @@
   "description": "Backend API for JUST (Justice Under Surveillance Tech)",
   "main": "server.js",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ejoeltech/JUSTng.git"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",

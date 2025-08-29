@@ -44,7 +44,7 @@ _JUST/
 ### 1. Clone & Setup
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ejoeltech/JUSTng.git
 cd _JUST
 ```
 

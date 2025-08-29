@@ -2,6 +2,10 @@
   "name": "just-app",
   "version": "1.0.0",
   "description": "Justice Under Surveillance Tech - Full Stack Application",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ejoeltech/JUSTng.git"
+  },
   "scripts": {
     "build": "cd frontend && npm run build",
     "install": "cd frontend && npm install",
