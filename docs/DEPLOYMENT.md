@@ -53,7 +53,7 @@ This guide covers deploying the JUST application to production environments.
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_API_URL=https://your-backend-url.com/api
+   VITE_API_BASE_URL=https://your-backend-url.com/api
    ```
 
 4. Build the application:
@@ -143,7 +143,7 @@ This guide covers deploying the JUST application to production environments.
 ### Frontend (.env)
 - [ ] `VITE_SUPABASE_URL`
 - [ ] `VITE_SUPABASE_ANON_KEY`
-- [ ] `VITE_API_URL`
+- [ ] `VITE_API_BASE_URL`
 - [ ] `VITE_APP_NAME`
 - [ ] `VITE_APP_VERSION`
 
