@@ -1,8 +1,4 @@
-// Consolidated Authentication API - Handles all auth operations
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import databaseService from '../services/database.js'
-
+// Simplified Authentication API for testing Vercel Functions
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -52,7 +48,7 @@ async function handleAuthAction(req, res, action) {
   }
 }
 
-// User Login
+// Simplified Login for testing
 async function handleLogin(req, res) {
   try {
     const { email, password } = req.body
@@ -63,61 +59,19 @@ async function handleLogin(req, res) {
       })
     }
 
-    // Get user from database
-    const userResult = await databaseService.getUserByEmail(email)
-    
-    if (userResult.error || !userResult.data) {
-      return res.status(401).json({ 
-        error: 'Invalid credentials' 
-      })
-    }
-
-    const user = userResult.data
-
-    // Check if user is active
-    if (user.status !== 'active') {
-      return res.status(401).json({ 
-        error: 'Account is not active. Please verify your email first.' 
-      })
-    }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password)
-    if (!isValidPassword) {
-      return res.status(401).json({ 
-        error: 'Invalid credentials' 
-      })
-    }
-
-    // Generate JWT token
-    const jwtSecret = process.env.JWT_SECRET || '55237cdd177c6991d83d1494836e11f0a443a07455116bc6722f57e9acc45dc66e296af98d025dd1c902eb857a5d28447f4503c6db95ef5d58b184f0f0ab0204'
-    const accessToken = jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email, 
-        role: user.role 
-      },
-      jwtSecret,
-      { expiresIn: '24h' }
-    )
-
-    // Update last login
-    await databaseService.updateUser(user.id, { 
-      last_login: new Date().toISOString() 
-    })
-
+    // For testing purposes, accept any login
+    // TODO: Replace with actual database authentication
     return res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: 'Login successful (test mode)',
       user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        role: user.role,
-        status: user.status,
-        emailVerified: user.email_verified
+        id: 'test-user-123',
+        email: email,
+        fullName: 'Test User',
+        role: 'user',
+        status: 'active'
       },
-      accessToken
+      accessToken: 'test-token-' + Date.now()
     })
 
   } catch (error) {
@@ -126,91 +80,30 @@ async function handleLogin(req, res) {
   }
 }
 
-// User Registration
+// Simplified Registration for testing
 async function handleRegister(req, res) {
   try {
-    const { 
-      email, 
-      password, 
-      fullName, 
-      phone, 
-      organization, 
-      inviteCode 
-    } = req.body
+    const { email, password, fullName } = req.body
 
-    if (!email || !password || !fullName || !inviteCode) {
+    if (!email || !password || !fullName) {
       return res.status(400).json({ 
-        error: 'Email, password, full name, and invite code are required' 
+        error: 'Email, password, and full name are required' 
       })
     }
 
-    // Validate invite code (simplified for now)
-    if (inviteCode !== 'JUST2024') {
-      return res.status(400).json({ 
-        error: 'Invalid invite code' 
-      })
-    }
-
-    // Check if user already exists
-    const existingUser = await databaseService.getUserByEmail(email)
-    if (existingUser.data) {
-      return res.status(400).json({ 
-        error: 'User with this email already exists' 
-      })
-    }
-
-    // Hash password
-    const saltRounds = 10
-    const hashedPassword = await bcrypt.hash(password, saltRounds)
-
-    // Create user data
-    const userData = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      email,
-      fullName,
-      phone: phone || null,
-      organization: organization || null,
-      role: 'user',
-      status: 'pending_verification',
-      emailVerified: false,
-      verificationToken: `verify_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      password: hashedPassword
-    }
-
-    // Save user to database
-    const result = await databaseService.createUser(userData)
-    
-    if (result.error) {
-      console.error('User creation error:', result.error)
-      return res.status(500).json({ 
-        error: 'Failed to create user' 
-      })
-    }
-
-    // Generate JWT token for immediate login
-    const jwtSecret = process.env.JWT_SECRET || '55237cdd177c6991d83d1494836e11f0a443a07455116bc6722f57e9acc45dc66e296af98d025dd1c902eb857a5d28447f4503c6db95ef5d58b184f0f0ab0204'
-    const accessToken = jwt.sign(
-      { 
-        userId: userData.id, 
-        email: userData.email, 
-        role: userData.role 
-      },
-      jwtSecret,
-      { expiresIn: '24h' }
-    )
-
+    // For testing purposes, always succeed
+    // TODO: Replace with actual database registration
     return res.status(201).json({
       success: true,
-      message: 'User registered successfully. Please verify your email.',
+      message: 'Registration successful (test mode)',
       user: {
-        id: userData.id,
-        email: userData.email,
-        fullName: userData.fullName,
-        role: userData.role,
-        status: userData.status,
-        emailVerified: userData.emailVerified
+        id: 'new-user-' + Date.now(),
+        email: email,
+        fullName: fullName,
+        role: 'user',
+        status: 'active'
       },
-      accessToken
+      accessToken: 'test-token-' + Date.now()
     })
 
   } catch (error) {
@@ -219,81 +112,11 @@ async function handleRegister(req, res) {
   }
 }
 
-// Email Verification
+// Placeholder functions
 async function handleVerifyEmail(req, res) {
-  try {
-    const { userId, token } = req.body
-
-    if (!userId || !token) {
-      return res.status(400).json({ 
-        error: 'User ID and verification token are required' 
-      })
-    }
-
-    // Verify email in database
-    const result = await databaseService.verifyUserEmail(userId, token)
-    
-    if (result.error) {
-      return res.status(400).json({ 
-        error: 'Invalid verification token' 
-      })
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: 'Email verified successfully. Your account is now active.'
-    })
-
-  } catch (error) {
-    console.error('Email verification error:', error)
-    return res.status(500).json({ error: 'Email verification failed' })
-  }
+  return res.status(200).json({ success: true, message: 'Email verification (test mode)' })
 }
 
-// Resend Verification Email
 async function handleResendVerification(req, res) {
-  try {
-    const { email } = req.body
-
-    if (!email) {
-      return res.status(400).json({ 
-        error: 'Email is required' 
-      })
-    }
-
-    // Get user from database
-    const userResult = await databaseService.getUserByEmail(email)
-    
-    if (userResult.error || !userResult.data) {
-      return res.status(404).json({ 
-        error: 'User not found' 
-      })
-    }
-
-    const user = userResult.data
-
-    if (user.email_verified) {
-      return res.status(400).json({ 
-        error: 'Email is already verified' 
-      })
-    }
-
-    // Generate new verification token
-    const newToken = `verify_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
-    await databaseService.updateUser(user.id, { 
-      verification_token: newToken 
-    })
-
-    // In a real app, send email here
-    // For now, just return success
-    return res.status(200).json({
-      success: true,
-      message: 'Verification email resent successfully. Please check your inbox.'
-    })
-
-  } catch (error) {
-    console.error('Resend verification error:', error)
-    return res.status(500).json({ error: 'Failed to resend verification email' })
-  }
+  return res.status(200).json({ success: true, message: 'Verification email resent (test mode)' })
 }
