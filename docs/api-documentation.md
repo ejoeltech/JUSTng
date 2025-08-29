@@ -889,6 +889,6 @@ npm run test:coverage
 ## Support
 
 For API support and questions:
-- **Email**: support@just-app.com
-- **Documentation**: https://docs.just-app.com
+- **Email**: support@just-app.ng
+- **Documentation**: https://github.com/ejoeltech/JUSTng
 - **GitHub Issues**: https://github.com/ejoeltech/JUSTng/issues
