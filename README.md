@@ -154,3 +154,5 @@ For support, email support@just-app.ng or create an issue.
 ---
 
 **Keep pushing. JUST matters!** 🚀
+
+<!-- Git configuration updated to use ejoeltech-4856 -->
