@@ -8,10 +8,10 @@
   },
   "scripts": {
     "build": "cd frontend && npm run build",
-    "install": "cd frontend && npm install",
     "dev": "cd frontend && npm run dev",
     "start": "cd frontend && npm run start",
-    "vercel-build": "npm run build"
+    "vercel-build": "npm run build",
+    "setup": "cd frontend && npm install && cd ../backend && npm install"
   },
   "workspaces": [
     "frontend",
