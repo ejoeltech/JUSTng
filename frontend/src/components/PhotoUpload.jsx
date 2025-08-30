@@ -1,11 +1,22 @@
 import { useState, useRef, useCallback } from 'react'
-import { Camera, X, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react'
+import { Camera, X, Upload, Image as ImageIcon, AlertCircle, Cloud, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import fileUploadService from '../services/fileUploadService'
 
-const PhotoUpload = ({ onPhotosSelected, maxPhotos = 5, maxSizeMB = 10 }) => {
+const PhotoUpload = ({ 
+  onPhotosSelected, 
+  maxPhotos = 5, 
+  maxSizeMB = 10, 
+  userId, 
+  incidentId,
+  onUploadProgress,
+  showUploadButton = true 
+}) => {
   const [photos, setPhotos] = useState([])
   const [isDragOver, setIsDragOver] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadedFiles, setUploadedFiles] = useState([])
   const fileInputRef = useRef(null)
 
   // Validate file type and size
@@ -97,7 +108,8 @@ const PhotoUpload = ({ onPhotosSelected, maxPhotos = 5, maxSizeMB = 10 }) => {
           preview: previewUrl,
           name: file.name,
           size: compressedFile.size,
-          type: compressedFile.type
+          type: compressedFile.type,
+          isUploaded: false
         })
       }
 
@@ -113,6 +125,68 @@ const PhotoUpload = ({ onPhotosSelected, maxPhotos = 5, maxSizeMB = 10 }) => {
       toast.error('Error processing photos. Please try again.')
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  // Upload files to Supabase storage
+  const handleUploadToStorage = async () => {
+    if (!userId || !incidentId) {
+      toast.error('User ID and Incident ID are required for upload')
+      return
+    }
+
+    if (photos.length === 0) {
+      toast.error('No photos to upload')
+      return
+    }
+
+    setIsUploading(true)
+    setUploadProgress(0)
+
+    try {
+      // Prepare files for upload
+      const filesToUpload = photos.map(photo => photo.file)
+      
+      // Upload files using the service
+      const result = await fileUploadService.uploadMultipleFiles(
+        filesToUpload, 
+        userId, 
+        incidentId,
+        (progress, current, total) => {
+          setUploadProgress(progress)
+          if (onUploadProgress) {
+            onUploadProgress(progress, current, total)
+          }
+        }
+      )
+
+      if (result.success) {
+        // Update photos with upload status
+        const updatedPhotos = photos.map((photo, index) => ({
+          ...photo,
+          isUploaded: true,
+          uploadResult: result.results[index]
+        }))
+
+        setPhotos(updatedPhotos)
+        setUploadedFiles(result.results)
+        
+        toast.success(`Successfully uploaded ${result.successfulUploads} file(s)`)
+        
+        // Call callback with uploaded files
+        if (onPhotosSelected) {
+          onPhotosSelected(updatedPhotos, result.results)
+        }
+      } else {
+        toast.error(`Upload failed: ${result.failedUploads} file(s) failed`)
+      }
+
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('Upload failed. Please try again.')
+    } finally {
+      setIsUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -200,14 +274,51 @@ const PhotoUpload = ({ onPhotosSelected, maxPhotos = 5, maxSizeMB = 10 }) => {
             <p>Maximum photos: {maxPhotos}</p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isUploading ? 'Processing...' : 'Browse Photos'}
-          </button>
+                     <button
+             type="button"
+             onClick={() => fileInputRef.current?.click()}
+             disabled={isUploading}
+             className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             {isUploading ? 'Processing...' : 'Browse Photos'}
+           </button>
+
+           {/* Upload to Storage Button */}
+           {showUploadButton && userId && incidentId && photos.length > 0 && (
+             <button
+               type="button"
+               onClick={handleUploadToStorage}
+               disabled={isUploading}
+               className="mt-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+             >
+               {isUploading ? (
+                 <>
+                   <Cloud className="h-4 w-4 animate-pulse" />
+                   <span>Uploading... {Math.round(uploadProgress)}%</span>
+                 </>
+               ) : (
+                 <>
+                   <Cloud className="h-4 w-4" />
+                   <span>Upload to Storage</span>
+                 </>
+               )}
+             </button>
+           )}
+
+           {/* Upload Progress Bar */}
+           {isUploading && uploadProgress > 0 && (
+             <div className="mt-3">
+               <div className="w-full bg-gray-200 rounded-full h-2">
+                 <div 
+                   className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                   style={{ width: `${uploadProgress}%` }}
+                 />
+               </div>
+               <p className="text-xs text-gray-600 mt-1 text-center">
+                 Uploading... {Math.round(uploadProgress)}%
+               </p>
+             </div>
+           )}
 
           <input
             ref={fileInputRef}
@@ -262,10 +373,16 @@ const PhotoUpload = ({ onPhotosSelected, maxPhotos = 5, maxSizeMB = 10 }) => {
                 </div>
                 
                 {/* Photo info */}
-                <div className="mt-2 text-xs text-gray-600">
-                  <p className="truncate font-medium">{photo.name}</p>
-                  <p>{formatFileSize(photo.size)}</p>
-                </div>
+                                 <div className="mt-2 text-xs text-gray-600">
+                   <p className="truncate font-medium">{photo.name}</p>
+                   <p>{formatFileSize(photo.size)}</p>
+                   {photo.isUploaded && (
+                     <div className="flex items-center space-x-1 text-green-600 mt-1">
+                       <CheckCircle className="h-3 w-3" />
+                       <span>Uploaded</span>
+                     </div>
+                   )}
+                 </div>
               </div>
             ))}
           </div>
