@@ -3,27 +3,31 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.')
-}
+// Create a mock client if environment variables are missing
+let supabase = null
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     }
-  }
-})
+  })
+} else {
+  console.warn('Supabase environment variables not found. App will run in local mode.')
+}
 
 // Helper functions for common operations
 export const supabaseHelpers = {
   // Get current user
   getCurrentUser: async () => {
+    if (!supabase) throw new Error('Supabase not initialized')
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error) throw error
     return user
@@ -31,6 +35,7 @@ export const supabaseHelpers = {
 
   // Get current session
   getCurrentSession: async () => {
+    if (!supabase) throw new Error('Supabase not initialized')
     const { data: { session }, error } = await supabase.auth.getSession()
     if (error) throw error
     return session
@@ -38,17 +43,20 @@ export const supabaseHelpers = {
 
   // Sign out user
   signOut: async () => {
+    if (!supabase) throw new Error('Supabase not initialized')
     const { error } = await supabase.auth.signOut()
     if (error) throw error
   },
 
   // Listen to auth changes
   onAuthStateChange: (callback) => {
+    if (!supabase) throw new Error('Supabase not initialized')
     return supabase.auth.onAuthStateChange(callback)
   },
 
   // Upload file to storage
   uploadFile: async (bucket, path, file, options = {}) => {
+    if (!supabase) throw new Error('Supabase not initialized')
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file, options)
@@ -59,6 +67,7 @@ export const supabaseHelpers = {
 
   // Get public URL for file
   getPublicUrl: (bucket, path) => {
+    if (!supabase) throw new Error('Supabase not initialized')
     const { data } = supabase.storage
       .from(bucket)
       .getPublicUrl(path)
@@ -67,6 +76,7 @@ export const supabaseHelpers = {
 
   // Delete file from storage
   deleteFile: async (bucket, path) => {
+    if (!supabase) throw new Error('Supabase not initialized')
     const { error } = await supabase.storage
       .from(bucket)
       .remove([path])
@@ -75,10 +85,16 @@ export const supabaseHelpers = {
   },
 
   // Database operations with RLS
-  from: (table) => supabase.from(table),
+  from: (table) => {
+    if (!supabase) throw new Error('Supabase not initialized')
+    return supabase.from(table)
+  },
 
   // Real-time subscriptions
-  channel: (name, options = {}) => supabase.channel(name, options)
+  channel: (name, options = {}) => {
+    if (!supabase) throw new Error('Supabase not initialized')
+    return supabase.channel(name, options)
+  }
 }
 
 export default supabase
