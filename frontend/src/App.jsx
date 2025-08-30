@@ -18,7 +18,6 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
-          <Toaster position="top-right" />
           <Routes>
             <Route path="/" element={<Layout><Home /></Layout>} />
             <Route path="/login" element={<Layout><Login /></Layout>} />

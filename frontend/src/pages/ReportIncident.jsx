@@ -311,8 +311,8 @@ const ReportIncident = () => {
             try {
               for (const file of incidentData.mediaFiles) {
                 await apiService.incidents.uploadMedia(file, (progress) => {
-                  console.log(`Upload progress: ${progress}%`)
-                })
+                console.log(`Upload progress: ${progress}%`)
+              })
               }
               toast.success('Report with media submitted successfully!')
             } catch (uploadError) {
@@ -325,7 +325,7 @@ const ReportIncident = () => {
 
           // Clear draft after successful submission
           clearCurrentDraft()
-          
+
           navigate('/dashboard')
         } catch (error) {
           console.error('Error submitting report:', error)
@@ -480,9 +480,9 @@ const ReportIncident = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-green-800 font-medium">Location captured successfully!</p>
-                      <p className="text-sm text-green-700">
-                        Lat: {location.latitude.toFixed(6)}, Lng: {location.longitude.toFixed(6)}
-                      </p>
+                  <p className="text-sm text-green-700">
+                    Lat: {location.latitude.toFixed(6)}, Lng: {location.longitude.toFixed(6)}
+                  </p>
                       {locationAccuracy && (
                         <p className="text-xs text-green-600">
                           Accuracy: ±{locationAccuracy}m
@@ -527,7 +527,7 @@ const ReportIncident = () => {
                       </option>
                     ))}
                   </select>
-                </div>
+            </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -567,19 +567,19 @@ const ReportIncident = () => {
 
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
-                  placeholder="Brief description of what happened"
-                  required
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                placeholder="Brief description of what happened"
+                required
+              />
+            </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -599,7 +599,7 @@ const ReportIncident = () => {
                   <option value="other">Other</option>
                 </select>
               </div>
-            </div>
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -616,19 +616,19 @@ const ReportIncident = () => {
                   <option value="high">High - Significant impact</option>
                   <option value="critical">Critical - Severe impact</option>
                 </select>
-              </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  When did this happen? *
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.incident_date}
-                  onChange={(e) => setFormData({...formData, incident_date: e.target.value})}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
-                  required
-                />
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                When did this happen? *
+              </label>
+              <input
+                type="datetime-local"
+                value={formData.incident_date}
+                onChange={(e) => setFormData({...formData, incident_date: e.target.value})}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                required
+              />
               </div>
             </div>
 
@@ -758,13 +758,13 @@ const ReportIncident = () => {
             {/* Form Actions */}
             <div className="flex justify-between items-center pt-6 border-t">
               <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
                 
                 {currentDraftId && (
                   <button
@@ -777,25 +777,25 @@ const ReportIncident = () => {
                 )}
               </div>
 
-              <button
-                type="submit"
+                                              <button
+                  type="submit"
                 disabled={!location || isLoading || !formData.title.trim() || !formData.description.trim()}
                 className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Submitting...</span>
-                  </>
-                ) : (
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
                   <span>
                     {recordedVideo || selectedPhotos.length > 0 
                       ? 'Submit Report with Media' 
                       : 'Submit Report'
                     }
                   </span>
-                )}
-              </button>
+                  )}
+                </button>
             </div>
           </form>
         </div>

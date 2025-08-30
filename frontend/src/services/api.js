@@ -1,3 +1,5 @@
+import { supabase } from '../config/supabase'
+
 // API service with JWT authentication
 class ApiService {
   constructor() {
