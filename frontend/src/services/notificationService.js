@@ -4,10 +4,16 @@ import { createClient } from '@supabase/supabase-js'
 
 class NotificationService {
   constructor() {
-    this.supabase = createClient(
-      process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-      process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
-    )
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+    const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+    
+    // Only initialize Supabase if we have the required environment variables
+    if (supabaseUrl && supabaseKey) {
+      this.supabase = createClient(supabaseUrl, supabaseKey)
+    } else {
+      console.warn('Supabase environment variables not found. Notifications will work in local mode.')
+      this.supabase = null
+    }
     
     this.notifications = []
     this.subscriptions = new Map()
@@ -76,7 +82,7 @@ class NotificationService {
 
   // Enable real-time notifications
   async enableRealTime() {
-    if (this.isEnabled) return
+    if (this.isEnabled || !this.supabase) return
 
     try {
       // Subscribe to incident notifications

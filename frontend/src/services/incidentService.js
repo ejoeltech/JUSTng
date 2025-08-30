@@ -4,10 +4,16 @@ import { toast } from 'react-hot-toast'
 
 class IncidentService {
   constructor() {
-    this.supabase = createClient(
-      process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-      process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
-    )
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+    const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+    
+    // Only initialize Supabase if we have the required environment variables
+    if (supabaseUrl && supabaseKey) {
+      this.supabase = createClient(supabaseUrl, supabaseKey)
+    } else {
+      console.warn('Supabase environment variables not found. Real-time features will be disabled.')
+      this.supabase = null
+    }
     
     this.subscriptions = new Map()
     this.realTimeEnabled = false
@@ -17,7 +23,7 @@ class IncidentService {
 
   // Initialize real-time subscriptions
   async enableRealTime() {
-    if (this.realTimeEnabled) return
+    if (this.realTimeEnabled || !this.supabase) return
 
     try {
       // Subscribe to incident changes
