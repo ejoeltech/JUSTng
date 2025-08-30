@@ -232,15 +232,108 @@ class ApiService {
     console.warn(`Handling ${endpoint} locally - backend not available`)
     
     if (endpoint.includes('/incidents')) {
-      return {
-        data: [],
-        total: 0,
-        message: 'No incidents found (local mode)'
-      }
+      return this.handleLocalIncidents(endpoint, options)
+    }
+    
+    if (endpoint.includes('/users/stats')) {
+      return this.handleLocalUserStats()
+    }
+
+    if (endpoint.includes('/upload')) {
+      return this.handleLocalUpload(options)
     }
 
     return {
       message: 'Feature handled locally - backend not available'
+    }
+  }
+
+  // Handle incidents endpoints locally
+  async handleLocalIncidents(endpoint, options) {
+    const localIncidents = JSON.parse(localStorage.getItem('just_local_incidents') || '[]')
+    const currentUser = this.getCurrentUser()
+
+    // Filter incidents for current user
+    const userIncidents = localIncidents.filter(incident => 
+      incident.reportedBy === currentUser?.id || incident.assignedTo === currentUser?.id
+    )
+
+    // Basic pagination
+    const page = parseInt(new URLSearchParams(endpoint.split('?')[1] || '').get('page')) || 1
+    const limit = parseInt(new URLSearchParams(endpoint.split('?')[1] || '').get('limit')) || 10
+    const startIndex = (page - 1) * limit
+    const endIndex = startIndex + limit
+    const paginatedIncidents = userIncidents.slice(startIndex, endIndex)
+
+    return {
+      incidents: paginatedIncidents,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(userIncidents.length / limit),
+        totalIncidents: userIncidents.length,
+        hasNextPage: endIndex < userIncidents.length,
+        hasPrevPage: page > 1
+      },
+      message: `Found ${userIncidents.length} incidents (local mode)`
+    }
+  }
+
+  // Handle user stats locally
+  async handleLocalUserStats() {
+    const localIncidents = JSON.parse(localStorage.getItem('just_local_incidents') || '[]')
+    const currentUser = this.getCurrentUser()
+
+    // Filter incidents for current user
+    const userIncidents = localIncidents.filter(incident => 
+      incident.reportedBy === currentUser?.id
+    )
+
+    // Calculate statistics
+    const stats = {
+      totalIncidents: userIncidents.length,
+      activeIncidents: userIncidents.filter(i => i.status === 'open' || i.status === 'in_progress').length,
+      resolvedIncidents: userIncidents.filter(i => i.status === 'resolved' || i.status === 'closed').length,
+      recentActivity: userIncidents.filter(i => {
+        const weekAgo = new Date()
+        weekAgo.setDate(weekAgo.getDate() - 7)
+        return new Date(i.createdAt) > weekAgo
+      }).length,
+      byStatus: {
+        open: userIncidents.filter(i => i.status === 'open').length,
+        in_progress: userIncidents.filter(i => i.status === 'in_progress').length,
+        resolved: userIncidents.filter(i => i.status === 'resolved').length,
+        closed: userIncidents.filter(i => i.status === 'closed').length
+      },
+      bySeverity: {
+        low: userIncidents.filter(i => i.severity === 'low').length,
+        medium: userIncidents.filter(i => i.severity === 'medium').length,
+        high: userIncidents.filter(i => i.severity === 'high').length,
+        critical: userIncidents.filter(i => i.severity === 'critical').length
+      }
+    }
+
+    return {
+      data: stats,
+      message: 'User statistics calculated (local mode)'
+    }
+  }
+
+  // Handle file uploads locally
+  async handleLocalUpload(options) {
+    return {
+      success: true,
+      fileUrl: 'data:image/png;base64,placeholder',
+      fileName: 'local_file_' + Date.now(),
+      message: 'File upload simulated (local mode)'
+    }
+  }
+
+  // Get current user from localStorage
+  getCurrentUser() {
+    try {
+      return JSON.parse(localStorage.getItem('just_user') || '{}')
+    } catch (error) {
+      return null
     }
   }
 

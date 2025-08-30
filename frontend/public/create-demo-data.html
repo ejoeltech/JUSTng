@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JUST - Create Demo Data</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+        }
+        .btn {
+            background: #2563eb;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        .btn-success {
+            background: #16a34a;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        .success {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+        }
+        .error {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        .demo-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 JUST Demo Data Creator</h1>
+            <p>Create sample incidents for testing the dashboard</p>
+        </div>
+        
+        <div class="content">
+            <p>This utility creates sample incident data to test the dashboard functionality in local mode. The data will be stored in your browser's localStorage.</p>
+            
+            <div class="demo-stats" id="currentStats">
+                <!-- Current stats will be displayed here -->
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="btn" onclick="createDemoData()">📊 Create Demo Incidents</button>
+                <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+                <a href="/dashboard" class="btn btn-success">📈 View Dashboard</a>
+            </div>
+
+            <div id="result"></div>
+
+            <div style="margin-top: 30px;">
+                <h3>📋 Demo Data Includes:</h3>
+                <ul>
+                    <li><strong>5 Sample Incidents</strong> - Various types and severities</li>
+                    <li><strong>Different Statuses</strong> - Open, In Progress, Resolved</li>
+                    <li><strong>Multiple Severities</strong> - Low, Medium, High, Critical</li>
+                    <li><strong>Recent Timestamps</strong> - Created within the last week</li>
+                    <li><strong>Your User ID</strong> - Assigned to currently logged in user</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            const incidents = JSON.parse(localStorage.getItem('just_local_incidents') || '[]');
+            const user = JSON.parse(localStorage.getItem('just_user') || '{}');
+            
+            const userIncidents = incidents.filter(i => i.reportedBy === user.id);
+            
+            const stats = {
+                total: userIncidents.length,
+                open: userIncidents.filter(i => i.status === 'open').length,
+                inProgress: userIncidents.filter(i => i.status === 'in_progress').length,
+                resolved: userIncidents.filter(i => i.status === 'resolved').length
+            };
+
+            document.getElementById('currentStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.total}</div>
+                    <div>Total Incidents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.open}</div>
+                    <div>Open</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.inProgress}</div>
+                    <div>In Progress</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.resolved}</div>
+                    <div>Resolved</div>
+                </div>
+            `;
+        }
+
+        function createDemoData() {
+            const user = JSON.parse(localStorage.getItem('just_user') || '{}');
+            
+            if (!user.id) {
+                showResult('❌ Please log in first to create demo data!', 'error');
+                return;
+            }
+
+            const demoIncidents = [
+                {
+                    id: 'demo_' + Date.now() + '_1',
+                    title: 'Police Harassment at Checkpoint',
+                    description: 'Officers demanding illegal bribes at Lagos-Ibadan expressway checkpoint. Multiple vehicles affected.',
+                    category: 'Harassment',
+                    severity: 'high',
+                    status: 'open',
+                    location: {
+                        latitude: 6.5244,
+                        longitude: 3.3792,
+                        address: 'Lagos-Ibadan Expressway, Lagos State'
+                    },
+                    reportedBy: user.id,
+                    reporterName: user.fullName,
+                    reporterEmail: user.email,
+                    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+                    updatedAt: new Date().toISOString(),
+                    media: [],
+                    isAnonymous: false
+                },
+                {
+                    id: 'demo_' + Date.now() + '_2',
+                    title: 'Unlawful Detention',
+                    description: 'Detained without cause for over 6 hours at Surulere Police Station. No charges filed.',
+                    category: 'Detention',
+                    severity: 'critical',
+                    status: 'in_progress',
+                    location: {
+                        latitude: 6.4969,
+                        longitude: 3.3576,
+                        address: 'Surulere, Lagos State'
+                    },
+                    reportedBy: user.id,
+                    reporterName: user.fullName,
+                    reporterEmail: user.email,
+                    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+                    updatedAt: new Date().toISOString(),
+                    media: [],
+                    isAnonymous: false
+                },
+                {
+                    id: 'demo_' + Date.now() + '_3',
+                    title: 'Property Damage by Police',
+                    description: 'Phone screen cracked during search. Officer refused to acknowledge damage.',
+                    category: 'Property Damage',
+                    severity: 'medium',
+                    status: 'resolved',
+                    location: {
+                        latitude: 6.4531,
+                        longitude: 3.3958,
+                        address: 'Victoria Island, Lagos State'
+                    },
+                    reportedBy: user.id,
+                    reporterName: user.fullName,
+                    reporterEmail: user.email,
+                    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+                    updatedAt: new Date().toISOString(),
+                    media: [],
+                    isAnonymous: false
+                },
+                {
+                    id: 'demo_' + Date.now() + '_4',
+                    title: 'Verbal Abuse and Threats',
+                    description: 'Officer used inappropriate language and made threats during routine stop.',
+                    category: 'Verbal Abuse',
+                    severity: 'medium',
+                    status: 'open',
+                    location: {
+                        latitude: 6.5795,
+                        longitude: 3.3211,
+                        address: 'Ikeja, Lagos State'
+                    },
+                    reportedBy: user.id,
+                    reporterName: user.fullName,
+                    reporterEmail: user.email,
+                    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+                    updatedAt: new Date().toISOString(),
+                    media: [],
+                    isAnonymous: true
+                },
+                {
+                    id: 'demo_' + Date.now() + '_5',
+                    title: 'Traffic Stop Escalation',
+                    description: 'Minor traffic violation escalated unnecessarily. Excessive force used during arrest.',
+                    category: 'Excessive Force',
+                    severity: 'high',
+                    status: 'in_progress',
+                    location: {
+                        latitude: 6.4698,
+                        longitude: 3.5852,
+                        address: 'Lekki, Lagos State'
+                    },
+                    reportedBy: user.id,
+                    reporterName: user.fullName,
+                    reporterEmail: user.email,
+                    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+                    updatedAt: new Date().toISOString(),
+                    media: [],
+                    isAnonymous: false
+                }
+            ];
+
+            // Save to localStorage
+            const existingIncidents = JSON.parse(localStorage.getItem('just_local_incidents') || '[]');
+            const allIncidents = [...existingIncidents, ...demoIncidents];
+            localStorage.setItem('just_local_incidents', JSON.stringify(allIncidents));
+
+            updateStats();
+            showResult('✅ Demo data created successfully! ' + demoIncidents.length + ' incidents added.', 'success');
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ This will delete all incident data. Are you sure?')) {
+                localStorage.removeItem('just_local_incidents');
+                updateStats();
+                showResult('🗑️ All incident data cleared.', 'success');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result ' + type;
+            resultDiv.innerHTML = message;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+        });
+    </script>
+</body>
+</html>
