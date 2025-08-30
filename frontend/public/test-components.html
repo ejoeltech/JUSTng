@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JUST - Component Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f3f4f6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .success {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        .loading {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .console-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .map-test {
+            height: 300px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 JUST Component Test & Debug</h1>
+        <p>This page tests individual components to identify loading issues.</p>
+
+        <!-- Authentication Test -->
+        <div class="test-section" id="authTest">
+            <h3>🔐 Authentication Test</h3>
+            <p>Testing if user authentication is working...</p>
+            <button class="btn" onclick="testAuth()">Test Auth</button>
+            <div id="authResult"></div>
+        </div>
+
+        <!-- API Service Test -->
+        <div class="test-section" id="apiTest">
+            <h3>🌐 API Service Test</h3>
+            <p>Testing API calls in local mode...</p>
+            <button class="btn" onclick="testAPI()">Test API</button>
+            <div id="apiResult"></div>
+        </div>
+
+        <!-- Map Libraries Test -->
+        <div class="test-section" id="mapTest">
+            <h3>🗺️ Map Libraries Test</h3>
+            <p>Testing if Leaflet and map libraries load...</p>
+            <button class="btn" onclick="testMapLibraries()">Test Map Libraries</button>
+            <div id="mapResult"></div>
+            <div id="mapContainer" class="map-test" style="display: none;"></div>
+        </div>
+
+        <!-- Console Errors -->
+        <div class="test-section" id="consoleTest">
+            <h3>⚠️ Console Errors</h3>
+            <p>Capturing JavaScript errors...</p>
+            <button class="btn" onclick="showConsoleErrors()">Show Errors</button>
+            <button class="btn" onclick="clearConsoleErrors()">Clear</button>
+            <div class="console-output" id="consoleOutput">No errors captured yet...</div>
+        </div>
+
+        <!-- Quick Fixes -->
+        <div class="test-section">
+            <h3>🔧 Quick Actions</h3>
+            <a href="/dashboard" class="btn">📊 Try Dashboard</a>
+            <a href="/map" class="btn">🗺️ Try Map</a>
+            <a href="/admin-users.html" class="btn">👥 View Users</a>
+            <a href="/create-demo-data.html" class="btn">📋 Create Demo Data</a>
+        </div>
+    </div>
+
+    <script>
+        // Error collection
+        let errors = [];
+        
+        // Capture console errors
+        window.addEventListener('error', function(e) {
+            const error = {
+                message: e.message,
+                source: e.filename,
+                line: e.lineno,
+                column: e.colno,
+                time: new Date().toLocaleTimeString()
+            };
+            errors.push(error);
+            console.error('Captured error:', error);
+        });
+
+        // Capture unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            const error = {
+                message: 'Unhandled Promise Rejection: ' + e.reason,
+                time: new Date().toLocaleTimeString()
+            };
+            errors.push(error);
+            console.error('Captured promise rejection:', error);
+        });
+
+        function testAuth() {
+            const result = document.getElementById('authResult');
+            result.innerHTML = '<p>Testing authentication...</p>';
+
+            try {
+                const user = localStorage.getItem('just_user');
+                const role = localStorage.getItem('just_user_role');
+                
+                if (user && role) {
+                    const userData = JSON.parse(user);
+                    result.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Authentication Working</h4>
+                            <p><strong>User:</strong> ${userData.fullName || userData.email}</p>
+                            <p><strong>Role:</strong> ${role}</p>
+                            <p><strong>Email:</strong> ${userData.email}</p>
+                            <p><strong>ID:</strong> ${userData.id}</p>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Not Logged In</h4>
+                            <p>No user data found. Please log in first.</p>
+                            <a href="/login" class="btn">Go to Login</a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Auth Error</h4>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testAPI() {
+            const result = document.getElementById('apiResult');
+            result.innerHTML = '<p>Testing API service...</p>';
+
+            try {
+                // Test if we can access the API service
+                const response = await fetch('/api/test', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 404) {
+                    result.innerHTML = `
+                        <div class="success">
+                            <h4>✅ API in Local Mode</h4>
+                            <p>Backend API not available (404) - This is expected in local mode.</p>
+                            <p>Local authentication and data storage working.</p>
+                        </div>
+                    `;
+                } else {
+                    const data = await response.text();
+                    result.innerHTML = `
+                        <div class="success">
+                            <h4>✅ API Connected</h4>
+                            <p>Status: ${response.status}</p>
+                            <p>Response: ${data}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="loading">
+                        <h4>⚠️ Network Error (Expected)</h4>
+                        <p>This is normal in local mode. API calls are handled locally.</p>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function testMapLibraries() {
+            const result = document.getElementById('mapResult');
+            const mapContainer = document.getElementById('mapContainer');
+            
+            result.innerHTML = '<p>Testing map libraries...</p>';
+
+            try {
+                // Test if Leaflet is loaded
+                if (typeof L !== 'undefined') {
+                    result.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Leaflet Loaded</h4>
+                            <p>Leaflet version: ${L.version}</p>
+                            <p>Creating test map...</p>
+                        </div>
+                    `;
+
+                    // Create a simple test map
+                    mapContainer.style.display = 'block';
+                    const map = L.map('mapContainer').setView([6.5244, 3.3792], 10);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+
+                    L.marker([6.5244, 3.3792]).addTo(map)
+                        .bindPopup('Test marker - Lagos, Nigeria')
+                        .openPopup();
+
+                    result.innerHTML += '<p>✅ Test map created successfully!</p>';
+
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Leaflet Not Loaded</h4>
+                            <p>Leaflet library is not available. This could be the map issue.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Map Error</h4>
+                        <p>Error creating map: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function showConsoleErrors() {
+            const output = document.getElementById('consoleOutput');
+            
+            if (errors.length === 0) {
+                output.textContent = 'No errors captured. This is good!';
+            } else {
+                output.textContent = errors.map(error => 
+                    `[${error.time}] ${error.message}\n${error.source ? `  at ${error.source}:${error.line}:${error.column}` : ''}`
+                ).join('\n\n');
+            }
+        }
+
+        function clearConsoleErrors() {
+            errors = [];
+            document.getElementById('consoleOutput').textContent = 'Errors cleared.';
+        }
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            testAuth();
+            setTimeout(() => {
+                showConsoleErrors();
+            }, 1000);
+        });
+    </script>
+
+    <!-- Try to load Leaflet for testing -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet'
-import { Icon, DivIcon } from 'leaflet'
+import L, { Icon, DivIcon } from '../utils/leafletFix'
 import { 
   Filter, 
   Search, 
