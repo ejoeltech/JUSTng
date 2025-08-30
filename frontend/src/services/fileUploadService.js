@@ -3,10 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 
 class FileUploadService {
   constructor() {
-    this.supabase = createClient(
-      process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-      process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
-    )
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+    const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+    
+    // Only initialize Supabase if we have the required environment variables
+    if (supabaseUrl && supabaseKey) {
+      this.supabase = createClient(supabaseUrl, supabaseKey)
+    } else {
+      console.warn('Supabase environment variables not found. File upload will work in local mode.')
+      this.supabase = null
+    }
     
     this.maxFileSize = 10 * 1024 * 1024 // 10MB
     this.allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
@@ -98,6 +104,22 @@ class FileUploadService {
   // Upload single file to Supabase storage
   async uploadFile(file, userId, incidentId, onProgress) {
     try {
+      // Check if Supabase is available
+      if (!this.supabase) {
+        // Return mock success for local development
+        const filename = this.generateFilename(file.name, userId, incidentId)
+        return {
+          success: true,
+          filename,
+          filePath: `local/${filename}`,
+          publicUrl: URL.createObjectURL(file),
+          size: file.size,
+          type: file.type,
+          originalName: file.name,
+          message: 'File uploaded locally (Supabase not configured)'
+        }
+      }
+
       // Validate file
       const validation = this.validateFile(file)
       if (!validation.isValid) {
@@ -190,6 +212,11 @@ class FileUploadService {
   // Delete file from storage
   async deleteFile(filePath) {
     try {
+      if (!this.supabase) {
+        console.warn('Cannot delete file - Supabase not configured')
+        return { success: true, message: 'File delete skipped (local mode)' }
+      }
+
       const { error } = await this.supabase.storage
         .from('incident-media')
         .remove([filePath])
@@ -211,6 +238,10 @@ class FileUploadService {
   // Get file info from storage
   async getFileInfo(filePath) {
     try {
+      if (!this.supabase) {
+        return { success: false, error: 'Supabase not configured' }
+      }
+
       const { data, error } = await this.supabase.storage
         .from('incident-media')
         .list(filePath.split('/').slice(0, -1).join('/'))
@@ -232,6 +263,10 @@ class FileUploadService {
   // Download file
   async downloadFile(filePath, filename) {
     try {
+      if (!this.supabase) {
+        throw new Error('Supabase not configured - cannot download files')
+      }
+
       const { data, error } = await this.supabase.storage
         .from('incident-media')
         .download(filePath)
@@ -263,6 +298,10 @@ class FileUploadService {
   // Get storage usage statistics
   async getStorageStats() {
     try {
+      if (!this.supabase) {
+        return { totalFiles: 0, totalSize: 0, message: 'Supabase not configured' }
+      }
+
       const { data, error } = await this.supabase.storage
         .from('incident-media')
         .list('', { limit: 1000 })
@@ -297,6 +336,10 @@ class FileUploadService {
   // Clean up old files (older than specified days)
   async cleanupOldFiles(daysOld = 30) {
     try {
+      if (!this.supabase) {
+        return { deletedCount: 0, message: 'Supabase not configured - cleanup skipped' }
+      }
+
       const cutoffDate = new Date()
       cutoffDate.setDate(cutoffDate.getDate() - daysOld)
 
