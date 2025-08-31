@@ -1,6 +1,6 @@
 // User Statistics API endpoint
-import { authenticateToken, requireActiveStatus } from '../middleware/auth.js'
-import databaseService from '../services/database.js'
+import { authenticateToken, requireActiveStatus } from '../../lib/middleware/auth.js'
+import databaseService from '../../lib/services/database.js'
 
 export default async function handler(req, res) {
   // Enable CORS

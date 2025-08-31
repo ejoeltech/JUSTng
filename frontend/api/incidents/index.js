@@ -1,6 +1,6 @@
 // Protected Incidents API with real database integration
-import { authenticateToken, requireRole, requireActiveStatus } from '../middleware/auth.js'
-import databaseService from '../services/database.js'
+import { authenticateToken, requireRole, requireActiveStatus } from '../../lib/middleware/auth.js'
+import databaseService from '../../lib/services/database.js'
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -26,6 +26,10 @@ export default async function handler(req, res) {
       case 'GET':
         return handleGetIncidents(req, res)
       case 'POST':
+        // Check if this is an upload request
+        if (req.url?.includes('/upload') || req.body?.files) {
+          return handleFileUpload(req, res)
+        }
         return handleCreateIncident(req, res)
       default:
         return res.status(405).json({ error: 'Method not allowed' })
@@ -144,6 +148,66 @@ async function handleCreateIncident(req, res) {
     console.error('Create incident error:', error)
     return res.status(500).json({ 
       error: 'Failed to create incident' 
+    })
+  }
+}
+
+// Handle file uploads for incidents
+async function handleFileUpload(req, res) {
+  try {
+    const { user } = req
+    const { incidentId, files } = req.body
+
+    if (!incidentId || !files || !Array.isArray(files)) {
+      return res.status(400).json({
+        error: 'incidentId and files array are required'
+      })
+    }
+
+    // Validate incident exists and user has access
+    const incidentResult = await databaseService.getIncidentById(incidentId)
+    if (incidentResult.error || !incidentResult.data) {
+      return res.status(404).json({
+        error: 'Incident not found or access denied'
+      })
+    }
+
+    const uploadResults = []
+    const errors = []
+
+    // Process each file
+    for (const fileData of files) {
+      try {
+        const result = await databaseService.uploadFile(fileData, incidentId, user.userId)
+        if (result.error) {
+          errors.push(`${fileData.filename}: ${result.error.message}`)
+        } else {
+          uploadResults.push(result.data)
+        }
+      } catch (fileError) {
+        errors.push(`${fileData.filename}: Processing error`)
+      }
+    }
+
+    const success = uploadResults.length > 0
+    return res.status(success ? 200 : 400).json({
+      success,
+      message: success 
+        ? `Successfully uploaded ${uploadResults.length} file(s)`
+        : 'No files were uploaded successfully',
+      uploads: uploadResults,
+      errors: errors.length > 0 ? errors : undefined,
+      summary: {
+        total: files.length,
+        successful: uploadResults.length,
+        failed: errors.length
+      }
+    })
+
+  } catch (error) {
+    console.error('File upload error:', error)
+    return res.status(500).json({ 
+      error: 'Failed to upload files' 
     })
   }
 }

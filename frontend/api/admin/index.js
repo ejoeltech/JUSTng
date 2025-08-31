@@ -1,6 +1,6 @@
 // Consolidated Admin API - Handles all admin operations
-import { authenticateToken, requireRole } from '../middleware/auth.js'
-import databaseService from '../services/database.js'
+import { authenticateToken, requireRole } from '../../lib/middleware/auth.js'
+import databaseService from '../../lib/services/database.js'
 
 export default async function handler(req, res) {
   // Enable CORS
