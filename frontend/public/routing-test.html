@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JUST - Routing Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link {
+            display: block;
+            padding: 12px;
+            margin: 8px 0;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .test-link:hover {
+            background: #2563eb;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #16a34a;
+        }
+        .error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 JUST Routing Test</h1>
+        <p>This page tests if React Router URLs work without 404 errors.</p>
+        
+        <div id="currentStatus" class="status">
+            <strong>Current URL:</strong> <span id="currentUrl"></span><br>
+            <strong>Referrer:</strong> <span id="referrer"></span>
+        </div>
+
+        <h3>📋 Test These Routes:</h3>
+        <p>Click each link to test direct navigation. Each should load the React app, not show 404.</p>
+
+        <a href="/" class="test-link">🏠 Home Page (/)</a>
+        <a href="/dashboard" class="test-link">📊 Dashboard (/dashboard)</a>
+        <a href="/map" class="test-link">🗺️ Incident Map (/map)</a>
+        <a href="/login" class="test-link">🔐 Login (/login)</a>
+        <a href="/register" class="test-link">👤 Register (/register)</a>
+        <a href="/report" class="test-link">📝 Report Incident (/report)</a>
+        <a href="/admin" class="test-link">⚙️ Admin (/admin)</a>
+
+        <h3>🔗 Utility Pages (Should Work):</h3>
+        <a href="/admin-users.html" class="test-link">👥 Admin Users</a>
+        <a href="/create-demo-data.html" class="test-link">📊 Create Demo Data</a>
+        <a href="/test-components.html" class="test-link">🔧 Component Test</a>
+
+        <h3>📊 Test Results:</h3>
+        <div id="testResults">
+            <p>Use the browser's back/forward buttons and refresh to test routing stability.</p>
+        </div>
+
+        <h3>🚨 If You See 404 Errors:</h3>
+        <ul>
+            <li>The Vercel SPA routing configuration needs adjustment</li>
+            <li>React Router may not be handling the route properly</li>
+            <li>Check browser console for JavaScript errors</li>
+        </ul>
+
+        <h3>✅ Expected Behavior:</h3>
+        <ul>
+            <li>All React routes (/, /dashboard, /map, etc.) should load the React app</li>
+            <li>Static pages (.html files) should load directly</li>
+            <li>Browser refresh should NOT cause 404 errors</li>
+            <li>Direct URL access should work without issues</li>
+        </ul>
+    </div>
+
+    <script>
+        // Display current page info
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('referrer').textContent = document.referrer || 'Direct access';
+
+        // Track if we came from a 404 error
+        if (document.referrer.includes('404') || window.location.search.includes('error=404')) {
+            document.getElementById('testResults').innerHTML = `
+                <div class="error">
+                    <strong>⚠️ 404 Error Detected!</strong><br>
+                    You may have encountered a routing issue. The SPA configuration needs to be fixed.
+                </div>
+            `;
+        } else {
+            document.getElementById('testResults').innerHTML = `
+                <div class="success">
+                    <strong>✅ Page Loaded Successfully</strong><br>
+                    No 404 error detected. Routing appears to be working.
+                </div>
+            `;
+        }
+
+        // Log navigation events
+        window.addEventListener('beforeunload', function(e) {
+            console.log('Navigating away from:', window.location.href);
+        });
+    </script>
+</body>
+</html>

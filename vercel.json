@@ -17,7 +17,39 @@
       }
     },
     {
+      "src": "/(admin-users\\.html|create-demo-data\\.html|test-components\\.html)",
+      "dest": "/$1"
+    },
+    {
+      "src": "/vite\\.svg",
+      "dest": "/vite.svg"
+    },
+    {
       "handle": "filesystem"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/map",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/login",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/register",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/report",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/admin",
+      "dest": "/index.html"
     },
     {
       "src": "/(.*)",
