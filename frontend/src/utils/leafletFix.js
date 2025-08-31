@@ -10,4 +10,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
+// Export specific classes
+export const Icon = L.Icon
+export const DivIcon = L.DivIcon
 export default L
