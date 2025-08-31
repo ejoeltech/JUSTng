@@ -101,7 +101,7 @@ const Register = () => {
         return
       }
 
-      toast.success('Registration successful! Please check your email to verify your account.')
+            toast.success('Registration successful! Please check your email to verify your account.')
       
       // Show detailed instructions
       toast.success('Verification email sent! Check your inbox and spam folder.', {
@@ -109,14 +109,10 @@ const Register = () => {
         icon: '📧'
       })
       
-             // Navigate to a verification page or show instructions
-       navigate('/verify-email', { 
-         state: { 
-           email: formData.email,
-           verificationToken: result.emailConfirmation?.verificationToken,
-           message: 'Please check your email for verification instructions'
-         }
-       })
+      // In local mode, navigate to dashboard after successful registration
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 2000) // Give time for success messages to be seen
     } catch (error) {
       toast.error('An unexpected error occurred')
       console.error('Registration error:', error)

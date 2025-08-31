@@ -1,59 +1,29 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
+  "framework": "vite",
+  "rewrites": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/assets/(.*)",
-      "headers": {
-        "cache-control": "max-age=31536000, immutable"
-      }
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
     },
     {
-      "src": "/(admin-users\\.html|create-demo-data\\.html|test-components\\.html)",
-      "dest": "/$1"
+      "source": "/(admin-users|create-demo-data|test-components|routing-test)\\.html",
+      "destination": "/$1.html"
     },
     {
-      "src": "/vite\\.svg",
-      "dest": "/vite.svg"
+      "source": "/vite.svg",
+      "destination": "/vite.svg"
     },
     {
-      "handle": "filesystem"
+      "source": "/(dashboard|map|login|register|report|admin)/?",
+      "destination": "/index.html"
     },
     {
-      "src": "/dashboard",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/map",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/login",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/register",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/report",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/admin",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
