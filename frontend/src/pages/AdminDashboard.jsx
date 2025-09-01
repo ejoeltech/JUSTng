@@ -39,7 +39,8 @@ import {
   Star,
   MessageSquare,
   ExternalLink,
-  User
+  User,
+  Bell
 } from 'lucide-react'
 import apiService from '../services/api'
 import { toast } from 'react-hot-toast'
@@ -65,6 +66,35 @@ const AdminDashboard = () => {
     totalPages: 1,
     totalItems: 0
   })
+
+  // New state for system configuration
+  const [systemConfig, setSystemConfig] = useState({
+    appSettings: {
+      maintenanceMode: false,
+      allowNewRegistrations: true,
+      requireEmailVerification: true,
+      maxLoginAttempts: 5,
+      maxFileSize: 10, // MB
+      sessionTimeout: 24 // hours
+    },
+    notificationSettings: {
+      emailNotifications: true,
+      pushNotifications: true,
+      incidentAlerts: true
+    },
+    securitySettings: {
+      twoFactorAuth: false,
+      rateLimiting: true,
+      auditLogging: true
+    },
+    performanceSettings: {
+      cacheEnabled: true,
+      cacheTimeout: 3600, // seconds
+      monitoringEnabled: true
+    }
+  })
+  const [configSaving, setConfigSaving] = useState(false)
+  const [activeConfigSection, setActiveConfigSection] = useState('app')
 
   useEffect(() => {
     if (canAccessAdmin()) {
@@ -392,6 +422,72 @@ const AdminDashboard = () => {
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
     return formatDate(dateString)
+  }
+
+  const exportConfig = () => {
+    const configData = JSON.stringify(systemConfig, null, 2)
+    const blob = new Blob([configData], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'system_config.json'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success('System configuration exported successfully!')
+  }
+
+  const importConfig = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    try {
+      const configData = await file.text()
+      const parsedConfig = JSON.parse(configData)
+      setSystemConfig(parsedConfig)
+      toast.success('System configuration imported successfully!')
+    } catch (error) {
+      console.error('Error importing config:', error)
+      toast.error('Failed to import system configuration. Invalid JSON file.')
+    }
+  }
+
+  const saveSystemConfig = async (section, config) => {
+    setConfigSaving(true)
+    try {
+      await apiService.admin.saveSystemConfig(section, config)
+      toast.success(`System ${section} saved successfully!`)
+    } catch (error) {
+      console.error('Error saving config:', error)
+      toast.error(`Failed to save system ${section}.`)
+    } finally {
+      setConfigSaving(false)
+    }
+  }
+
+  const resetConfigSection = (section) => {
+    setSystemConfig(prev => ({
+      ...prev,
+      [section]: { // Assuming a default structure for each section
+        maintenanceMode: false,
+        allowNewRegistrations: true,
+        requireEmailVerification: true,
+        maxLoginAttempts: 5,
+        maxFileSize: 10,
+        sessionTimeout: 24,
+        emailNotifications: true,
+        pushNotifications: true,
+        incidentAlerts: true,
+        twoFactorAuth: false,
+        rateLimiting: true,
+        auditLogging: true,
+        cacheEnabled: true,
+        cacheTimeout: 3600,
+        monitoringEnabled: true
+      }
+    }))
+    toast.success(`System ${section} reset to defaults.`)
   }
 
   if (!canAccessAdmin()) {
@@ -855,15 +951,424 @@ const AdminDashboard = () => {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+        </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'settings' && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Settings</h3>
-                <p className="text-gray-600">System configuration and admin preferences will be available here.</p>
+              <div className="space-y-6">
+                {/* Settings Header */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">System Configuration</h3>
+                      <p className="text-sm text-gray-600 mt-1">Manage application settings, security, and performance</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={exportConfig}
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </button>
+                      <label className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={importConfig}
+                          className="hidden"
+                        />
+                        Import
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Configuration Sections */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  {/* Sidebar Navigation */}
+                  <div className="lg:col-span-1">
+                    <nav className="space-y-1">
+                      {[
+                        { id: 'app', name: 'App Settings', icon: Settings, description: 'General application configuration' },
+                        { id: 'notifications', name: 'Notifications', icon: Bell, description: 'Notification preferences' },
+                        { id: 'security', name: 'Security', icon: Shield, description: 'Security and authentication' },
+                        { id: 'performance', name: 'Performance', icon: Activity, description: 'Performance and caching' }
+                      ].map((section) => {
+                        const Icon = section.icon
+                        return (
+                          <button
+                            key={section.id}
+                            onClick={() => setActiveConfigSection(section.id)}
+                            className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+                              activeConfigSection === section.id
+                                ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center">
+                              <Icon className="h-4 w-4 mr-3" />
+                              <div>
+                                <div className="font-medium">{section.name}</div>
+                                <div className="text-xs text-gray-500">{section.description}</div>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </nav>
+                  </div>
+
+                  {/* Configuration Content */}
+                  <div className="lg:col-span-3">
+                    {activeConfigSection === 'app' && (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-lg font-medium text-gray-900">App Settings</h4>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => resetConfigSection('appSettings')}
+                              className="text-sm text-gray-600 hover:text-gray-800"
+                            >
+                              Reset to Defaults
+                            </button>
+                            <button
+                              onClick={() => saveSystemConfig('appSettings', systemConfig.appSettings)}
+                              disabled={configSaving}
+                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+                            >
+                              {configSaving ? (
+                                <>
+                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                'Save Changes'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                          {/* System Status */}
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-900 mb-3">System Status</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={systemConfig.appSettings.maintenanceMode}
+                                  onChange={(e) => setSystemConfig(prev => ({
+                                    ...prev,
+                                    appSettings: {
+                                      ...prev.appSettings,
+                                      maintenanceMode: e.target.checked
+                                    }
+                                  }))}
+                                  className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Maintenance Mode</span>
+                              </label>
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={systemConfig.appSettings.allowNewRegistrations}
+                                  onChange={(e) => setSystemConfig(prev => ({
+                                    ...prev,
+                                    appSettings: {
+                                      ...prev.appSettings,
+                                      allowNewRegistrations: e.target.checked
+                                    }
+                                  }))}
+                                  className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Allow New Registrations</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Security Settings */}
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-900 mb-3">Security Settings</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={systemConfig.appSettings.requireEmailVerification}
+                                  onChange={(e) => setSystemConfig(prev => ({
+                                    ...prev,
+                                    appSettings: {
+                                      ...prev.appSettings,
+                                      requireEmailVerification: e.target.checked
+                                    }
+                                  }))}
+                                  className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Require Email Verification</span>
+                              </label>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Max Login Attempts
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  value={systemConfig.appSettings.maxLoginAttempts}
+                                  onChange={(e) => setSystemConfig(prev => ({
+                                    ...prev,
+                                    appSettings: {
+                                      ...prev.appSettings,
+                                      maxLoginAttempts: parseInt(e.target.value)
+                                    }
+                                  }))}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* File Upload Settings */}
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-900 mb-3">File Upload Settings</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Max File Size (MB)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  value={systemConfig.appSettings.maxFileSize}
+                                  onChange={(e) => setSystemConfig(prev => ({
+                                    ...prev,
+                                    appSettings: {
+                                      ...prev.appSettings,
+                                      maxFileSize: parseInt(e.target.value)
+                                    }
+                                  }))}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Session Timeout (hours)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="168"
+                                  value={systemConfig.appSettings.sessionTimeout}
+                                  onChange={(e) => setSystemConfig(prev => ({
+                                    ...prev,
+                                    appSettings: {
+                                      ...prev.appSettings,
+                                      sessionTimeout: parseInt(e.target.value)
+                                    }
+                                  }))}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeConfigSection === 'notifications' && (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-lg font-medium text-gray-900">Notification Settings</h4>
+                          <button
+                            onClick={() => saveSystemConfig('notificationSettings', systemConfig.notificationSettings)}
+                            disabled={configSaving}
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+                          >
+                            {configSaving ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.notificationSettings.emailNotifications}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                notificationSettings: {
+                                  ...prev.notificationSettings,
+                                  emailNotifications: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Email Notifications</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.notificationSettings.pushNotifications}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                notificationSettings: {
+                                  ...prev.notificationSettings,
+                                  pushNotifications: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Push Notifications</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.notificationSettings.incidentAlerts}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                notificationSettings: {
+                                  ...prev.notificationSettings,
+                                  incidentAlerts: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Incident Alerts</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeConfigSection === 'security' && (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-lg font-medium text-gray-900">Security Settings</h4>
+                          <button
+                            onClick={() => saveSystemConfig('securitySettings', systemConfig.securitySettings)}
+                            disabled={configSaving}
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+                          >
+                            {configSaving ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.securitySettings.twoFactorAuth}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                securitySettings: {
+                                  ...prev.securitySettings,
+                                  twoFactorAuth: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Two-Factor Authentication</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.securitySettings.rateLimiting}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                securitySettings: {
+                                  ...prev.securitySettings,
+                                  rateLimiting: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Rate Limiting</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.securitySettings.auditLogging}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                securitySettings: {
+                                  ...prev.securitySettings,
+                                  auditLogging: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Audit Logging</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeConfigSection === 'performance' && (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-lg font-medium text-gray-900">Performance Settings</h4>
+                          <button
+                            onClick={() => saveSystemConfig('performanceSettings', systemConfig.performanceSettings)}
+                            disabled={configSaving}
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+                          >
+                            {configSaving ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.performanceSettings.cacheEnabled}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                performanceSettings: {
+                                  ...prev.performanceSettings,
+                                  cacheEnabled: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Caching</span>
+                          </label>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Cache Timeout (seconds)
+                            </label>
+                            <input
+                              type="number"
+                              min="60"
+                              max="86400"
+                              value={systemConfig.performanceSettings.cacheTimeout}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                performanceSettings: {
+                                  ...prev.performanceSettings,
+                                  cacheTimeout: parseInt(e.target.value)
+                                }
+                              }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={systemConfig.performanceSettings.monitoringEnabled}
+                              onChange={(e) => setSystemConfig(prev => ({
+                                ...prev,
+                                performanceSettings: {
+                                  ...prev.performanceSettings,
+                                  monitoringEnabled: e.target.checked
+                                }
+                              }))}
+                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Performance Monitoring</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </>
