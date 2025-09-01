@@ -18,6 +18,7 @@ const SuperAdminDashboard = () => {
   const [appSettings, setAppSettings] = useState({})
   const [activeTab, setActiveTab] = useState('overview')
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false)
 
   // Mock data for now - replace with API calls
   useEffect(() => {
@@ -496,19 +497,131 @@ const SuperAdminDashboard = () => {
           <div className="space-y-6">
             {/* Create Announcement */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Create New Announcement</h3>
                 <button
-                  onClick={createAnnouncement}
+                  onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
                   className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
                 >
-                  Create Announcement
+                  {showAnnouncementForm ? 'Cancel' : 'Create Announcement'}
                 </button>
+              </div>
+
+              {showAnnouncementForm && (
+                <div className="border-t pt-6">
+                  <form className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                        <input
+                          type="text"
+                          placeholder="Announcement title"
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                        <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                          <option value="info">Information</option>
+                          <option value="success">Success</option>
+                          <option value="warning">Warning</option>
+                          <option value="error">Error</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                        <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="urgent">Urgent</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
+                        <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                          <option value="all">All Users</option>
+                          <option value="users">Regular Users Only</option>
+                          <option value="police">Police Officers Only</option>
+                          <option value="admins">Admins Only</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                      <textarea
+                        rows={4}
+                        placeholder="Announcement content..."
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Send as notification to all users</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Pin to dashboard</span>
+                      </label>
+                    </div>
+
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowAnnouncementForm(false)}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
+                      >
+                        Publish Announcement
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            {/* Manage Announcements */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Manage Announcements</h3>
+                <div className="flex items-center space-x-3">
+                  <select className="rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                    <option value="all">All Types</option>
+                    <option value="info">Information</option>
+                    <option value="success">Success</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                  </select>
+                  <select className="rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                    <option value="all">All Priorities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-4">
                 {announcements.map((announcement) => (
-                  <div key={announcement.id} className="border rounded-lg p-4">
+                  <div key={announcement.id} className="border rounded-lg p-4 hover:bg-gray-50">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
@@ -528,18 +641,28 @@ const SuperAdminDashboard = () => {
                           }`}>
                             {announcement.priority}
                           </span>
+                          {announcement.is_active && (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500 text-white">
+                              Active
+                            </span>
+                          )}
                         </div>
                         <h4 className="font-medium text-gray-900 mb-1">{announcement.title}</h4>
                         <p className="text-sm text-gray-600 mb-2">{announcement.content}</p>
-                        <p className="text-xs text-gray-500">
-                          Created: {new Date(announcement.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          <span>Created: {new Date(announcement.created_at).toLocaleDateString()}</span>
+                          <span>Views: 1,234</span>
+                          <span>Status: {announcement.is_active ? 'Published' : 'Draft'}</span>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800">
+                        <button className="text-blue-600 hover:text-blue-800" title="Edit">
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button className="text-red-600 hover:text-red-800">
+                        <button className="text-green-600 hover:text-green-800" title="Toggle Status">
+                          {announcement.is_active ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                        </button>
+                        <button className="text-red-600 hover:text-red-800" title="Delete">
                           <XCircle className="h-4 w-4" />
                         </button>
                       </div>
