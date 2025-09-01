@@ -454,10 +454,420 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center py-12 text-gray-500">
-          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-          <p>Admin dashboard functionality coming soon...</p>
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin text-primary-600" />
+            <span className="ml-2 text-gray-600">Loading admin dashboard...</span>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'overview' && (
+              <div className="space-y-8">
+                {/* Analytics Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                    <div className="flex items-center">
+                      <div className="p-3 bg-blue-100 rounded-lg">
+                        <FileText className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600">Total Incidents</p>
+                        <p className="text-2xl font-bold text-gray-900">{analytics.totalIncidents || 0}</p>
+                        <p className="text-xs text-green-600 mt-1">+{analytics.newIncidentsToday || 0} today</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                    <div className="flex items-center">
+                      <div className="p-3 bg-green-100 rounded-lg">
+                        <CheckCircle className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600">Resolution Rate</p>
+                        <p className="text-2xl font-bold text-gray-900">{analytics.resolutionRate || 0}%</p>
+                        <p className="text-xs text-green-600 mt-1">↑ 5.2% from last month</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                    <div className="flex items-center">
+                      <div className="p-3 bg-yellow-100 rounded-lg">
+                        <Clock className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
+                        <p className="text-2xl font-bold text-gray-900">{analytics.avgResponseTime || 'N/A'}</p>
+                        <p className="text-xs text-green-600 mt-1">↓ 0.5 days improved</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                    <div className="flex items-center">
+                      <div className="p-3 bg-purple-100 rounded-lg">
+                        <Users className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600">Active Users</p>
+                        <p className="text-2xl font-bold text-gray-900">{analytics.totalUsers || 0}</p>
+                        <p className="text-xs text-green-600 mt-1">+{analytics.newUsersThisWeek || 0} this week</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'incidents' && (
+              <div className="space-y-6">
+                {/* Filters */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                    <div className="flex items-center space-x-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <input
+                          type="text"
+                          placeholder="Search incidents..."
+                          value={filters.search}
+                          onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                      
+                      <select
+                        value={filters.status}
+                        onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      >
+                        <option value="">All Status</option>
+                        <option value="reported">Reported</option>
+                        <option value="investigating">Investigating</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                      
+                      <select
+                        value={filters.severity}
+                        onChange={(e) => setFilters(prev => ({ ...prev, severity: e.target.value }))}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      >
+                        <option value="">All Severity</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Incidents Table */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">Incident Management</h3>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedItems(incidents.map(i => i.id))
+                                } else {
+                                  setSelectedItems([])
+                                }
+                              }}
+                              className="h-4 w-4 text-primary-600 rounded"
+                            />
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Incident
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Reporter
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Severity
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Assigned To
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th scope="col" className="relative px-6 py-3">
+                            <span className="sr-only">Actions</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {incidents.map((incident) => (
+                          <tr key={incident.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={selectedItems.includes(incident.id)}
+                                onChange={() => toggleItemSelection(incident.id)}
+                                className="h-4 w-4 text-primary-600 rounded"
+                              />
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-start space-x-3">
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">{incident.title}</div>
+                                  <div className="text-sm text-gray-500 line-clamp-2">{incident.description}</div>
+                                  <div className="flex items-center mt-1 text-xs text-gray-400">
+                                    <MapPin className="h-3 w-3 mr-1" />
+                                    {incident.location?.address}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{incident.reporter?.name}</div>
+                              <div className="text-sm text-gray-500">{incident.reporter?.email}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <select
+                                value={incident.status}
+                                onChange={(e) => handleStatusUpdate(incident.id, e.target.value)}
+                                className={`text-xs font-medium rounded-full px-2.5 py-0.5 border-0 ${getStatusColor(incident.status)}`}
+                              >
+                                <option value="reported">Reported</option>
+                                <option value="investigating">Investigating</option>
+                                <option value="under_review">Under Review</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="closed">Closed</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(incident.severity)}`}>
+                                {incident.severity}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {incident.assigned_to || (
+                                <button className="text-primary-600 hover:text-primary-800 font-medium">
+                                  Assign
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatDate(incident.created_at)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  className="text-primary-600 hover:text-primary-800"
+                                  title="View Details"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button
+                                  className="text-gray-600 hover:text-gray-800"
+                                  title="Edit"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  className="text-red-600 hover:text-red-800"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'users' && (
+              <div className="space-y-6">
+                {/* User Filters */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                    <div className="flex items-center space-x-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <input
+                          type="text"
+                          placeholder="Search users..."
+                          value={filters.search}
+                          onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                      
+                      <select
+                        value={filters.role}
+                        onChange={(e) => setFilters(prev => ({ ...prev, role: e.target.value }))}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      >
+                        <option value="">All Roles</option>
+                        <option value="user">User</option>
+                        <option value="police">Police</option>
+                        <option value="admin">Admin</option>
+                        <option value="superadmin">Super Admin</option>
+                      </select>
+                    </div>
+                    
+                    <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add User
+                    </button>
+                  </div>
+                </div>
+
+                {/* Users Table */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">User Management</h3>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedItems(users.map(u => u.id))
+                                } else {
+                                  setSelectedItems([])
+                                }
+                              }}
+                              className="h-4 w-4 text-primary-600 rounded"
+                            />
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            User
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Role
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Incidents
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Last Login
+                          </th>
+                          <th scope="col" className="relative px-6 py-3">
+                            <span className="sr-only">Actions</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {users.map((usr) => (
+                          <tr key={usr.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={selectedItems.includes(usr.id)}
+                                onChange={() => toggleItemSelection(usr.id)}
+                                className="h-4 w-4 text-primary-600 rounded"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10">
+                                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                    <User className="h-5 w-5 text-gray-600" />
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{usr.full_name}</div>
+                                  <div className="text-sm text-gray-500">{usr.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <select
+                                value={usr.role}
+                                onChange={(e) => handleUserRoleUpdate(usr.id, e.target.value)}
+                                className={`text-xs font-medium rounded-full px-2.5 py-0.5 border-0 ${
+                                  usr.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                                  usr.role === 'police' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                <option value="user">User</option>
+                                <option value="police">Police</option>
+                                <option value="admin">Admin</option>
+                                <option value="superadmin">Super Admin</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <select
+                                value={usr.status}
+                                onChange={(e) => handleUserStatusUpdate(usr.id, e.target.value)}
+                                className={`text-xs font-medium rounded-full px-2.5 py-0.5 border-0 ${getStatusColor(usr.status)}`}
+                              >
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="pending">Pending</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {usr.incident_count}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {usr.last_login ? getTimeAgo(usr.last_login) : 'Never'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  className="text-primary-600 hover:text-primary-800"
+                                  title="View Profile"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteUser(usr.id)}
+                                  className="text-red-600 hover:text-red-800"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Settings</h3>
+                <p className="text-gray-600">System configuration and admin preferences will be available here.</p>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
