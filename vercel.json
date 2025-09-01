@@ -25,9 +25,6 @@
       "dest": "/vite.svg"
     },
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/dashboard",
       "dest": "/index.html"
     },
@@ -52,8 +49,24 @@
       "dest": "/index.html"
     },
     {
-      "src": "/(.*)",
+      "src": "/super-admin",
       "dest": "/index.html"
+    },
+    {
+      "src": "/incident-map",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/email-verification",
+      "dest": "/index.html"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html",
+      "status": 200
     }
   ]
 }

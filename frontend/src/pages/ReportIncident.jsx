@@ -527,7 +527,7 @@ const ReportIncident = () => {
                       </option>
                     ))}
                   </select>
-            </div>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -802,13 +802,13 @@ const ReportIncident = () => {
             {/* Form Actions */}
             <div className="flex justify-between items-center pt-6 border-t">
               <div className="flex space-x-3">
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
                 
                 {currentDraftId && (
                   <button
@@ -821,25 +821,25 @@ const ReportIncident = () => {
                 )}
               </div>
 
-                                              <button
-                  type="submit"
+              <button
+                type="submit"
                 disabled={!location || isLoading || !formData.title.trim() || !formData.description.trim()}
                 className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Submitting...</span>
+                  </>
+                ) : (
                   <span>
                     {recordedVideo || selectedPhotos.length > 0 
                       ? 'Submit Report with Media' 
                       : 'Submit Report'
                     }
                   </span>
-                  )}
-                </button>
+                )}
+              </button>
             </div>
           </form>
         </div>
