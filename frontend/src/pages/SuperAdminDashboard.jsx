@@ -336,6 +336,93 @@ const SuperAdminDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Quick Actions & System Monitoring */}
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Quick Actions & System Monitoring</h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Quick Actions */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-4">Quick Actions</h4>
+                    <div className="space-y-3">
+                      <button className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <Server className="h-5 w-5 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-900">Run System Check</span>
+                        </div>
+                        <span className="text-xs text-blue-600">Quick</span>
+                      </button>
+                      
+                      <button className="w-full flex items-center justify-between p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <Database className="h-5 w-5 text-green-600" />
+                          <span className="text-sm font-medium text-green-900">Create Backup</span>
+                        </div>
+                        <span className="text-xs text-green-600">5 min</span>
+                      </button>
+                      
+                      <button className="w-full flex items-center justify-between p-3 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <Bell className="h-5 w-5 text-yellow-600" />
+                          <span className="text-sm font-medium text-yellow-900">Send Announcement</span>
+                        </div>
+                        <span className="text-xs text-yellow-600">2 min</span>
+                      </button>
+                      
+                      <button className="w-full flex items-center justify-between p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <BarChart3 className="h-5 w-5 text-purple-600" />
+                          <span className="text-sm font-medium text-purple-900">Generate Report</span>
+                        </div>
+                        <span className="text-xs text-purple-600">10 min</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* System Monitoring */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-4">Real-time Monitoring</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-600">Active Users</span>
+                        <span className="text-sm font-medium text-gray-900">67</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-600">Incidents Today</span>
+                        <span className="text-sm font-medium text-gray-900">5</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-600">System Load</span>
+                        <span className="text-sm font-medium text-green-600">23%</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-600">Last Backup</span>
+                        <span className="text-sm font-medium text-gray-900">2h ago</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">System Status</h4>
+                      <p className="text-sm text-gray-600">All systems operational • Last checked 2 minutes ago</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm text-green-600 font-medium">Healthy</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
