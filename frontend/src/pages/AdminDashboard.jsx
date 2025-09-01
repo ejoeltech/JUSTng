@@ -289,7 +289,7 @@ const AdminDashboard = () => {
 
   const handleUserStatusUpdate = async (userId, newStatus) => {
     try {
-      // API call would go here
+      await apiService.admin.updateUserStatus(userId, newStatus)
       setUsers(prev => 
         prev.map(user => 
           user.id === userId 
@@ -300,6 +300,32 @@ const AdminDashboard = () => {
       toast.success(`User status updated to ${newStatus}`)
     } catch (error) {
       toast.error('Failed to update user status')
+    }
+  }
+
+  const handleUserRoleUpdate = async (userId, newRole) => {
+    try {
+      await apiService.admin.updateUser(userId, { role: newRole })
+      setUsers(prev => 
+        prev.map(user => 
+          user.id === userId 
+            ? { ...user, role: newRole }
+            : user
+        )
+      )
+      toast.success(`User role updated to ${newRole}`)
+    } catch (error) {
+      toast.error('Failed to update user role')
+    }
+  }
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      await apiService.admin.deleteUser(userId)
+      setUsers(prev => prev.filter(u => u.id !== userId))
+      toast.success('User deleted')
+    } catch (error) {
+      toast.error('Failed to delete user')
     }
   }
 
