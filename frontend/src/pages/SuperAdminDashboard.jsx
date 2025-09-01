@@ -424,6 +424,70 @@ const SuperAdminDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Database Backup & Restore */}
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Database Backup & Restore</h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Backup Section */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Create Backup</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Backup Type</label>
+                        <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                          <option value="full">Full Database</option>
+                          <option value="incidents">Incidents Only</option>
+                          <option value="users">Users Only</option>
+                          <option value="files">Files Only</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Compression</label>
+                        <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                          <option value="gzip">Gzip (Recommended)</option>
+                          <option value="none">No Compression</option>
+                        </select>
+                      </div>
+                      <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Create Backup Now
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Restore Section */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Restore from Backup</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Select Backup File</label>
+                        <input
+                          type="file"
+                          accept=".sql,.gz,.backup"
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="confirm-restore"
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        />
+                        <label htmlFor="confirm-restore" className="text-sm text-gray-700">
+                          I understand this will overwrite current data
+                        </label>
+                      </div>
+                      <button className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50" disabled>
+                        Restore Database
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
