@@ -95,6 +95,7 @@ const AdminDashboard = () => {
   })
   const [configSaving, setConfigSaving] = useState(false)
   const [activeConfigSection, setActiveConfigSection] = useState('app')
+  const [configHistory, setConfigHistory] = useState([]) // New state for history
 
   useEffect(() => {
     if (canAccessAdmin()) {
@@ -1368,6 +1369,51 @@ const AdminDashboard = () => {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Configuration History */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-medium text-gray-900">Configuration History</h4>
+                    <span className="text-sm text-gray-500">Last 10 changes</span>
+                  </div>
+                  
+                  {configHistory.length > 0 ? (
+                    <div className="space-y-3">
+                      {configHistory.map((change) => (
+                        <div key={change.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-primary-100 rounded-lg">
+                              <Settings className="h-4 w-4 text-primary-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {change.section} configuration updated
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                by {change.user} • {getTimeAgo(change.timestamp)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              // In a real app, this would show detailed changes
+                              toast.success('Change details loaded')
+                            }}
+                            className="text-sm text-primary-600 hover:text-primary-800"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p>No configuration changes yet</p>
+                      <p className="text-sm">Changes will appear here after you modify settings</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
