@@ -223,6 +223,164 @@ const createPopupContent = (incident) => {
   `
 }
 
+// Enhanced Map Components
+// Heat map component
+const HeatMap = ({ incidents, visible }) => {
+  const map = useMap()
+  
+  useEffect(() => {
+    if (!visible || !incidents.length) return
+    
+    // Create heat map layer
+    const heatData = incidents.map(incident => [
+      incident.latitude || incident.location?.lat,
+      incident.longitude || incident.location?.lng,
+      getSeverityWeight(incident.severity)
+    ]).filter(([lat, lng]) => lat && lng)
+    
+    if (heatData.length === 0) return
+    
+    const heatLayer = L.heatLayer(heatData, {
+      radius: 25,
+      blur: 15,
+      maxZoom: 10,
+      gradient: {
+        0.4: '#10B981',   // Green for low
+        0.6: '#F59E0B',   // Yellow for medium
+        0.8: '#F97316',   // Orange for high
+        1.0: '#EF4444'    // Red for critical
+      }
+    })
+    
+    heatLayer.addTo(map)
+    
+    return () => {
+      map.removeLayer(heatLayer)
+    }
+  }, [incidents, visible, map])
+  
+  return null
+}
+
+// Helper function to get severity weight for heat map
+const getSeverityWeight = (severity) => {
+  const weights = {
+    low: 0.3,
+    medium: 0.6,
+    high: 0.8,
+    critical: 1.0,
+    emergency: 1.2
+  }
+  return weights[severity] || 0.5
+}
+
+// Cluster markers component
+const ClusterMarkers = ({ incidents, onMarkerClick }) => {
+  const map = useMap()
+  const clusterGroupRef = useRef(null)
+  
+  useEffect(() => {
+    if (!incidents.length) return
+    
+    // Create cluster group
+    const clusterGroup = L.markerClusterGroup({
+      chunkedLoading: true,
+      chunkInterval: 200,
+      chunkDelay: 50,
+      maxClusterRadius: 80,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: true,
+      zoomToBoundsOnClick: true,
+      iconCreateFunction: (cluster) => {
+        const count = cluster.getChildCount()
+        const severity = getClusterSeverity(cluster.getAllChildMarkers())
+        
+        return L.divIcon({
+          html: `
+            <div style="
+              background-color: ${getSeverityColor(severity)};
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              border: 3px solid white;
+              box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: bold;
+              font-size: 14px;
+            ">
+              ${count}
+            </div>
+          `,
+          className: 'cluster-marker',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        })
+      }
+    })
+    
+    // Add markers to cluster group
+    incidents.forEach(incident => {
+      const lat = incident.latitude || incident.location?.lat
+      const lng = incident.longitude || incident.location?.lng
+      
+      if (!lat || !lng) return
+      
+      const marker = L.marker([lat, lng], {
+        icon: createCustomIcon(incident.severity)
+      })
+      
+      marker.bindPopup(createPopupContent(incident))
+      marker.on('click', () => onMarkerClick(incident))
+      
+      clusterGroup.addLayer(marker)
+    })
+    
+    clusterGroup.addTo(map)
+    clusterGroupRef.current = clusterGroup
+    
+    return () => {
+      if (clusterGroupRef.current) {
+        map.removeLayer(clusterGroupRef.current)
+      }
+    }
+  }, [incidents, map, onMarkerClick])
+  
+  return null
+}
+
+// Helper function to get cluster severity
+const getClusterSeverity = (markers) => {
+  const severities = markers.map(marker => marker.options.severity || 'medium')
+  const severityCounts = severities.reduce((acc, severity) => {
+    acc[severity] = (acc[severity] || 0) + 1
+    return acc
+  }, {})
+  
+  // Return the most common severity, or 'high' if mixed
+  const maxCount = Math.max(...Object.values(severityCounts))
+  const maxSeverity = Object.keys(severityCounts).find(key => severityCounts[key] === maxCount)
+  
+  if (severityCounts.critical || severityCounts.emergency) return 'critical'
+  if (severityCounts.high) return 'high'
+  if (severityCounts.medium) return 'medium'
+  return 'low'
+}
+
+// Helper function to get severity color
+const getSeverityColor = (severity) => {
+  const colors = {
+    low: '#10B981',
+    medium: '#F59E0B',
+    high: '#F97316',
+    critical: '#EF4444',
+    emergency: '#DC2626'
+  }
+  return colors[severity] || '#6B7280'
+}
+
 // Incident Map component
 const IncidentMap = () => {
   const { user, userRole } = useAuth()
