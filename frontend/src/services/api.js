@@ -417,7 +417,7 @@ class ApiService {
   admin = {
     getUsers: (params = {}) => {
       const queryString = new URLSearchParams(params).toString()
-      return this.request(`/admin?action=users${queryString ? `&${queryString}` : ''}`)
+      return this.request(`/users${queryString ? `?${queryString}` : ''}`)
     },
     
     updateUser: (userId, userData) => this.request(`/admin?action=user-role`, {

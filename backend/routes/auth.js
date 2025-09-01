@@ -35,7 +35,29 @@ router.post('/register', validateRegistration, async (req, res) => {
       })
     }
 
-    const { email, password, phone, fullName } = req.body
+    const { email, password, phone, fullName, inviteCode } = req.body
+
+    // Validate invite code
+    if (!inviteCode) {
+      return res.status(400).json({
+        error: 'Invite Code Required',
+        message: 'Invite code is required for registration'
+      })
+    }
+
+    // Check if invite code is valid
+    const validCodes = ['JUST2024', 'ADMIN2024', 'POLICE001']
+    if (!validCodes.includes(inviteCode)) {
+      return res.status(400).json({
+        error: 'Invalid Invite Code',
+        message: 'The provided invite code is not valid'
+      })
+    }
+
+    // Determine role based on invite code
+    let userRole = 'user'
+    if (inviteCode === 'ADMIN2024') userRole = 'admin'
+    if (inviteCode === 'POLICE001') userRole = 'police'
 
     // Check if user already exists
     const { data: existingUser } = await supabase.auth.admin.listUsers()
@@ -52,7 +74,7 @@ router.post('/register', validateRegistration, async (req, res) => {
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: false, // Require email confirmation
       user_metadata: {
         full_name: fullName,
         phone: phone
@@ -75,7 +97,8 @@ router.post('/register', validateRegistration, async (req, res) => {
           email: authData.user.email,
           phone: phone,
           full_name: fullName,
-          role: 'user',
+          role: userRole,
+          status: 'active',
           created_at: new Date().toISOString()
         }
       ])
@@ -103,7 +126,7 @@ router.post('/register', validateRegistration, async (req, res) => {
         email: authData.user.email,
         fullName,
         phone,
-        role: 'user'
+        role: userRole
       },
       token
     })

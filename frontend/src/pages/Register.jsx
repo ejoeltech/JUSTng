@@ -109,14 +109,12 @@ const Register = () => {
         icon: '📧'
       })
       
-             // Navigate to a verification page or show instructions
-       navigate('/verify-email', { 
-         state: { 
-           email: formData.email,
-           verificationToken: result.emailConfirmation?.verificationToken,
-           message: 'Please check your email for verification instructions'
-         }
-       })
+             // Navigate to login page after successful registration
+      navigate('/login', { 
+        state: { 
+          message: 'Registration successful! Please check your email to verify your account before logging in.'
+        }
+      })
     } catch (error) {
       toast.error('An unexpected error occurred')
       console.error('Registration error:', error)
