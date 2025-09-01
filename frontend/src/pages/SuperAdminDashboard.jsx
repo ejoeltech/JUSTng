@@ -677,7 +677,55 @@ const SuperAdminDashboard = () => {
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
-            {/* App Settings */}
+            {/* App Update Management */}
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">App Update Management</h3>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Version</label>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="text"
+                        value={appSettings.app_version}
+                        readOnly
+                        className="w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                      />
+                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Latest</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Update Channel</label>
+                    <select className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                      <option value="stable">Stable</option>
+                      <option value="beta">Beta</option>
+                      <option value="alpha">Alpha</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-t pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Available Updates</h4>
+                      <p className="text-sm text-gray-600">Check for new versions and manage updates</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Check for Updates
+                      </button>
+                      <button className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
+                        Download Update
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Application Settings */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Application Settings</h3>
