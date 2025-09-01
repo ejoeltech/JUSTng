@@ -172,6 +172,57 @@ const MapLegend = ({ filters, onFilterChange }) => {
   )
 }
 
+  return colors[severity] || '#6B7280'
+}
+
+// Create popup content for incident markers
+const createPopupContent = (incident) => {
+  const severityColors = {
+    low: '#10B981',
+    medium: '#F59E0B',
+    high: '#F97316',
+    critical: '#EF4444',
+    emergency: '#DC2626'
+  }
+  
+  const severityColor = severityColors[incident.severity] || '#6B7280'
+  
+  return `
+    <div class="incident-popup" style="min-width: 250px;">
+      <div class="flex items-center space-x-2 mb-2">
+        <div style="
+          background-color: ${severityColor};
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+        "></div>
+        <span class="font-semibold text-gray-900">${incident.title}</span>
+      </div>
+      <p class="text-sm text-gray-600 mb-2">${incident.description?.substring(0, 100)}${incident.description?.length > 100 ? '...' : ''}</p>
+      <div class="text-xs text-gray-500 space-y-1">
+        <div class="flex justify-between">
+          <span>Severity:</span>
+          <span class="font-medium capitalize">${incident.severity}</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Status:</span>
+          <span class="font-medium capitalize">${incident.status?.replace('_', ' ') || 'Unknown'}</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Date:</span>
+          <span>${new Date(incident.incident_date || incident.created_at).toLocaleDateString()}</span>
+        </div>
+        ${incident.location?.address ? `
+          <div class="flex justify-between">
+            <span>Location:</span>
+            <span>${incident.location.address}</span>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `
+}
+
 // Incident Map component
 const IncidentMap = () => {
   const { user, userRole } = useAuth()
@@ -344,6 +395,55 @@ const IncidentMap = () => {
     return colors[status] || '#6B7280'
   }
 
+  // Create popup content for incident markers
+  const createPopupContent = (incident) => {
+    const severityColors = {
+      low: '#10B981',
+      medium: '#F59E0B',
+      high: '#F97316',
+      critical: '#EF4444',
+      emergency: '#DC2626'
+    }
+    
+    const severityColor = severityColors[incident.severity] || '#6B7280'
+    
+    return `
+      <div class="incident-popup" style="min-width: 250px;">
+        <div class="flex items-center space-x-2 mb-2">
+          <div style="
+            background-color: ${severityColor};
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+          "></div>
+          <span class="font-semibold text-gray-900">${incident.title}</span>
+        </div>
+        <p class="text-sm text-gray-600 mb-2">${incident.description?.substring(0, 100)}${incident.description?.length > 100 ? '...' : ''}</p>
+        <div class="text-xs text-gray-500 space-y-1">
+          <div class="flex justify-between">
+            <span>Severity:</span>
+            <span class="font-medium capitalize">${incident.severity}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Status:</span>
+            <span class="font-medium capitalize">${incident.status?.replace('_', ' ') || 'Unknown'}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Date:</span>
+            <span>${new Date(incident.incident_date || incident.created_at).toLocaleDateString()}</span>
+          </div>
+          ${incident.location?.address ? `
+            <div class="flex justify-between">
+              <span>Location:</span>
+              <span>${incident.location.address}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `
+  }
+
+  // Incident Map component
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -524,59 +624,9 @@ const IncidentMap = () => {
                     click: () => handleIncidentClick(incident)
                   }}
                 >
-                  <Popup>
-                    <div className="p-2 min-w-[250px]">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-gray-900 text-sm">
-                          {incident.title}
-                        </h3>
-                        <span
-                          className="inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white"
-                          style={{ backgroundColor: getStatusColor(incident.status) }}
-                        >
-                          {incident.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                      
-                      <p className="text-gray-600 text-sm mb-2">
-                        {incident.description.substring(0, 100)}...
-                      </p>
-                      
-                      <div className="space-y-1 text-xs text-gray-500">
-                        <div className="flex items-center">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {incident.location.address || 'Location not specified'}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {formatDate(incident.created_at)}
-                        </div>
-                        <div className="flex items-center">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Severity: {incident.severity}
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-2 mt-3 pt-2 border-t border-gray-200">
-                        <button className="text-primary-600 hover:text-primary-800 text-xs">
-                          <Eye className="h-3 w-3 inline mr-1" />
-                          View
-                        </button>
-                        {userRole === 'admin' || userRole === 'superAdmin' ? (
-                          <>
-                            <button className="text-gray-600 hover:text-gray-800 text-xs">
-                              <Edit className="h-3 w-3 inline mr-1" />
-                              Edit
-                            </button>
-                            <button className="text-red-600 hover:text-red-800 text-xs">
-                              <Trash2 className="h-3 w-3 inline mr-1" />
-                              Delete
-                            </button>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                  </Popup>
+                  <Popup
+                    dangerouslySetInnerHTML={{ __html: createPopupContent(incident) }}
+                  />
                 </Marker>
               )
             })}
