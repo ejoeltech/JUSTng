@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap, Circle } from 'react-leaflet'
 import L, { Icon, DivIcon } from '../utils/leafletFix'
 import { 
   Filter, 
@@ -18,11 +18,16 @@ import {
   RefreshCw,
   BarChart3,
   Download,
-  Share2
+  Share2,
+  Flame,
+  Target,
+  Route
 } from 'lucide-react'
 import apiService from '../services/api'
 import { toast } from 'react-hot-toast'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 // Custom marker icons
 const createCustomIcon = (severity) => {
