@@ -536,4 +536,249 @@ router.get('/health', requireAdmin, async (req, res) => {
   }
 })
 
+// Get all users for admin management
+router.get('/users', requireAdmin, async (req, res) => {
+  try {
+    const { search = '', role = '', status = '', page = 1, limit = 50 } = req.query
+    const offset = (page - 1) * limit
+
+    let query = supabase
+      .from('user_profiles')
+      .select(`
+        id,
+        full_name,
+        email,
+        phone,
+        role,
+        status,
+        created_at,
+        last_login,
+        location,
+        avatar_url,
+        email_verified,
+        profile_completed
+      `)
+      .order('created_at', { ascending: false })
+
+    // Apply filters
+    if (search) {
+      query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`)
+    }
+
+    if (role && role !== 'all') {
+      query = query.eq('role', role)
+    }
+
+    if (status && status !== 'all') {
+      query = query.eq('status', status)
+    }
+
+    // Get total count for pagination
+    const { count: totalCount } = await query.count()
+
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1)
+
+    const { data: users, error } = await query
+
+    if (error) {
+      console.error('Error fetching users:', error)
+      return res.status(500).json({
+        error: 'Failed to fetch users',
+        message: error.message
+      })
+    }
+
+    // Get incident count for each user
+    const usersWithIncidentCount = await Promise.all(
+      users.map(async (user) => {
+        const { count: incidentCount } = await supabase
+          .from('incidents')
+          .select('*', { count: 'exact', head: true })
+          .eq('reporter_id', user.id)
+
+        return {
+          ...user,
+          incident_count: incidentCount || 0
+        }
+      })
+    )
+
+    res.json({
+      users: usersWithIncidentCount,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+        itemsPerPage: parseInt(limit)
+      }
+    })
+
+  } catch (error) {
+    console.error('Error fetching users:', error)
+    res.status(500).json({
+      error: 'Failed to fetch users',
+      message: error.message
+    })
+  }
+})
+
+// Update user role (admin only)
+router.patch('/users/:id/role', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { role } = req.body
+
+    if (!role || !['user', 'admin', 'superadmin', 'police'].includes(role)) {
+      return res.status(400).json({
+        error: 'Invalid role',
+        message: 'Role must be user, admin, superadmin, or police'
+      })
+    }
+
+    // Prevent admin from changing their own role to non-admin
+    if (id === req.user.id && role !== 'admin' && role !== 'superadmin') {
+      return res.status(400).json({
+        error: 'Cannot change own role',
+        message: 'You cannot change your own role to a non-admin role'
+      })
+    }
+
+    const { data: updatedUser, error } = await supabase
+      .from('user_profiles')
+      .update({ 
+        role,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating user role:', error)
+      return res.status(500).json({
+        error: 'Failed to update user role',
+        message: error.message
+      })
+    }
+
+    res.json({
+      message: 'User role updated successfully',
+      user: updatedUser
+    })
+
+  } catch (error) {
+    console.error('Error updating user role:', error)
+    res.status(500).json({
+      error: 'Failed to update user role',
+      message: error.message
+    })
+  }
+})
+
+// Update user status (admin only)
+router.patch('/users/:id/status', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { status } = req.body
+
+    if (!status || !['active', 'suspended', 'banned'].includes(status)) {
+      return res.status(400).json({
+        error: 'Invalid status',
+        message: 'Status must be active, suspended, or banned'
+      })
+    }
+
+    // Prevent admin from suspending/banning themselves
+    if (id === req.user.id) {
+      return res.status(400).json({
+        error: 'Cannot change own status',
+        message: 'You cannot suspend or ban yourself'
+      })
+    }
+
+    const { data: updatedUser, error } = await supabase
+      .from('user_profiles')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating user status:', error)
+      return res.status(500).json({
+        error: 'Failed to update user status',
+        message: error.message
+      })
+    }
+
+    res.json({
+      message: 'User status updated successfully',
+      user: updatedUser
+    })
+
+  } catch (error) {
+    console.error('Error updating user status:', error)
+    res.status(500).json({
+      error: 'Failed to update user status',
+      message: error.message
+    })
+  }
+})
+
+// Delete user (admin only)
+router.delete('/users/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Prevent admin from deleting themselves
+    if (id === req.user.id) {
+      return res.status(400).json({
+        error: 'Cannot delete own account',
+        message: 'You cannot delete your own account'
+      })
+    }
+
+    // Check if user has incidents
+    const { count: incidentCount } = await supabase
+      .from('incidents')
+      .select('*', { count: 'exact', head: true })
+      .eq('reporter_id', id)
+
+    if (incidentCount > 0) {
+      return res.status(400).json({
+        error: 'Cannot delete user with incidents',
+        message: `User has ${incidentCount} incident(s). Please handle incidents before deletion.`
+      })
+    }
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting user:', error)
+      return res.status(500).json({
+        error: 'Failed to delete user',
+        message: error.message
+      })
+    }
+
+    res.json({
+      message: 'User deleted successfully'
+    })
+
+  } catch (error) {
+    console.error('Error deleting user:', error)
+    res.status(500).json({
+      error: 'Failed to delete user',
+      message: error.message
+    })
+  }
+})
+
 export default router

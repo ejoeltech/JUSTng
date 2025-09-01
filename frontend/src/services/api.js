@@ -417,15 +417,15 @@ class ApiService {
   admin = {
     getUsers: (params = {}) => {
       const queryString = new URLSearchParams(params).toString()
-      return this.request(`/users${queryString ? `?${queryString}` : ''}`)
+      return this.request(`/admin/users${queryString ? `?${queryString}` : ''}`)
     },
     
-    updateUser: (userId, userData) => this.request(`/admin?action=user-role`, {
-      method: 'PUT',
-      body: JSON.stringify({ userId, newRole: userData.role })
+    updateUser: (userId, userData) => this.request(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role: userData.role })
     }),
     
-    deleteUser: (userId) => this.request(`/admin?action=user&userId=${userId}`, {
+    deleteUser: (userId) => this.request(`/admin/users/${userId}`, {
       method: 'DELETE'
     }),
     
@@ -439,9 +439,9 @@ class ApiService {
       body: JSON.stringify(incidentData)
     }),
     
-    getAnalytics: () => this.request('/admin?action=analytics'),
+    getAnalytics: () => this.request('/admin/analytics'),
     
-    getSystemHealth: () => this.request('/admin?action=health'),
+    getSystemHealth: () => this.request('/admin/health'),
     
     // Additional admin functions
     createInviteCode: (inviteData) => this.request('/admin?action=invite-codes', {
@@ -449,9 +449,9 @@ class ApiService {
       body: JSON.stringify(inviteData)
     }),
     
-    updateUserStatus: (userId, newStatus) => this.request('/admin?action=user-status', {
-      method: 'PUT',
-      body: JSON.stringify({ userId, newStatus })
+    updateUserStatus: (userId, newStatus) => this.request(`/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: newStatus })
     }),
     
     deleteInviteCode: (inviteCode) => this.request(`/admin?action=invite-code&inviteCode=${inviteCode}`, {
