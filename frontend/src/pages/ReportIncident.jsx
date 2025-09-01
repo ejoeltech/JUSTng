@@ -611,11 +611,35 @@ const ReportIncident = () => {
                   onChange={(e) => setFormData({...formData, severity: e.target.value})}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
                 >
-                  <option value="low">Low - Minor inconvenience</option>
-                  <option value="medium">Medium - Moderate impact</option>
-                  <option value="high">High - Significant impact</option>
-                  <option value="critical">Critical - Severe impact</option>
+                  <option value="low">🟢 Low - Minor inconvenience, no physical harm</option>
+                  <option value="medium">🟡 Medium - Moderate impact, some distress</option>
+                  <option value="high">🟠 High - Significant impact, physical/emotional harm</option>
+                  <option value="critical">🔴 Critical - Severe impact, life-threatening</option>
+                  <option value="emergency">🚨 Emergency - Immediate danger, requires urgent response</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Incident Category
+                </label>
+                <select
+                  value={formData.incident_category || ''}
+                  onChange={(e) => setFormData({...formData, incident_category: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                >
+                  <option value="">Select category</option>
+                  <option value="traffic">Traffic Stop</option>
+                  <option value="checkpoint">Checkpoint</option>
+                  <option value="home">Home/Residence</option>
+                  <option value="public">Public Place</option>
+                  <option value="workplace">Workplace</option>
+                  <option value="vehicle">Vehicle Search</option>
+                  <option value="arrest">During Arrest</option>
+                  <option value="detention">In Detention</option>
+                  <option value="other_location">Other Location</option>
+                </select>
+              </div>
             </div>
 
             <div>
