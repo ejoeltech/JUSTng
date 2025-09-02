@@ -55,7 +55,13 @@ async function handleAdminGet(req, res, action) {
       case 'health':
         return handleGetHealth(req, res)
       default:
-        return res.status(400).json({ error: 'Invalid action specified' })
+        // If no action specified, return test response
+        return res.status(200).json({
+          message: 'Admin API is working!',
+          timestamp: new Date().toISOString(),
+          status: 'success',
+          action: action || 'test'
+        })
     }
   } catch (error) {
     console.error('Admin GET error:', error)
