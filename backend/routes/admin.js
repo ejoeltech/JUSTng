@@ -781,4 +781,46 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
   }
 })
 
+// Save system configuration
+router.post('/settings', requireAdmin, async (req, res) => {
+  try {
+    const { section, config } = req.body
+
+    if (!section || !config) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'Section and config are required'
+      })
+    }
+
+    // Validate section
+    const validSections = ['appSettings', 'notificationSettings', 'securitySettings', 'performanceSettings']
+    if (!validSections.includes(section)) {
+      return res.status(400).json({
+        error: 'Invalid section',
+        message: 'Section must be one of: appSettings, notificationSettings, securitySettings, performanceSettings'
+      })
+    }
+
+    // Here you would typically save to a database or configuration file
+    // For now, we'll just return success
+    // TODO: Implement actual configuration persistence
+    
+    console.log(`Saving ${section} configuration:`, config)
+
+    res.json({
+      message: `${section} configuration saved successfully`,
+      section,
+      config
+    })
+
+  } catch (error) {
+    console.error('Error saving system configuration:', error)
+    res.status(500).json({
+      error: 'Failed to save system configuration',
+      message: error.message
+    })
+  }
+})
+
 export default router

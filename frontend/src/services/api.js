@@ -443,6 +443,12 @@ class ApiService {
     
     getSystemHealth: () => this.request('/admin/health'),
     
+    // Save system configuration
+    saveSystemConfig: (section, config) => this.request('/admin/settings', {
+      method: 'POST',
+      body: JSON.stringify({ section, config })
+    }),
+    
     // Additional admin functions
     createInviteCode: (inviteData) => this.request('/admin?action=invite-codes', {
       method: 'POST',

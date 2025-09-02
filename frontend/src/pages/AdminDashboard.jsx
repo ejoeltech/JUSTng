@@ -149,17 +149,31 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
+      console.log('Fetching users with filters:', filters)
       const result = await apiService.admin.getUsers({
         role: filters.role,
         search: filters.search
       })
       
+      console.log('Users API response:', result)
+      
       if (result.users) {
+        console.log('Setting users:', result.users)
         setUsers(result.users)
+      } else {
+        console.warn('No users data in response:', result)
+        setUsers([])
       }
     } catch (error) {
       console.error('Error fetching users:', error)
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      })
+      
       // Fallback to mock data for demo
+      console.log('Falling back to mock users')
       const mockUsers = generateMockUsers()
       setUsers(mockUsers)
     }
