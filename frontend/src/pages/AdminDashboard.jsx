@@ -40,7 +40,8 @@ import {
   MessageSquare,
   ExternalLink,
   User,
-  Bell
+  Bell,
+  Bug
 } from 'lucide-react'
 import apiService from '../services/api'
 import { toast } from 'react-hot-toast'
@@ -505,6 +506,26 @@ const AdminDashboard = () => {
     toast.success(`System ${section} reset to defaults.`)
   }
 
+  const testUserAPI = async () => {
+    try {
+      const result = await apiService.admin.getUsers({
+        role: 'user',
+        search: 'John'
+      })
+      toast.success('User API test successful!', {
+        duration: 5000,
+        icon: '✅'
+      })
+      console.log('User API Test Response:', result)
+    } catch (error) {
+      toast.error('User API test failed!', {
+        duration: 5000,
+        icon: '❌'
+      })
+      console.error('User API Test Error:', error)
+    }
+  }
+
   if (!canAccessAdmin()) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -848,7 +869,26 @@ const AdminDashboard = () => {
                 {/* Users Table */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">User Management</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-gray-900">User Management</h3>
+                      <div className="flex items-center space-x-3">
+                        <button
+                          onClick={testUserAPI}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <Bug className="h-4 w-4 mr-2" />
+                          Debug API
+                        </button>
+                        <button
+                          onClick={fetchUsers}
+                          disabled={loading}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                          {loading ? 'Loading...' : 'Refresh Users'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="overflow-x-auto">
