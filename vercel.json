@@ -11,6 +11,14 @@
   ],
   "routes": [
     {
+      "src": "/api/admin/users",
+      "dest": "/frontend/api/admin/users.js"
+    },
+    {
+      "src": "/api/admin/test",
+      "dest": "/frontend/api/admin/test.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/frontend/api/$1"
     },
