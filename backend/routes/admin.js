@@ -7,6 +7,12 @@ const router = express.Router()
 
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Missing Supabase environment variables')
+  throw new Error('Missing Supabase environment variables')
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 // Validation middleware
@@ -18,12 +24,14 @@ const validateIncidentUpdate = [
   body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']).withMessage('Invalid priority level')
 ]
 
-// Test endpoint to verify admin routes are working
+// Test endpoint to verify admin routes are working (no auth required for testing)
 router.get('/test', (req, res) => {
   res.json({
     message: 'Admin routes are working!',
     timestamp: new Date().toISOString(),
-    status: 'success'
+    status: 'success',
+    supabase_connected: !!supabase,
+    environment: process.env.NODE_ENV || 'development'
   })
 })
 

@@ -125,19 +125,24 @@ app.use('*', (req, res) => {
   })
 })
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`🚀 JUST API Server running on port ${PORT}`)
-  console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`)
-})
+// Vercel serverless function export
+export default app
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully')
-  server.close(() => {
-    console.log('Process terminated')
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  server.listen(PORT, () => {
+    console.log(`🚀 JUST API Server running on port ${PORT}`)
+    console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`)
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`)
   })
-})
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully')
+    server.close(() => {
+      console.log('Process terminated')
+    })
+  })
+}
 
 export { io }
