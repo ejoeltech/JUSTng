@@ -173,10 +173,9 @@ const AdminDashboard = () => {
         response: error.response
       })
       
-      // Fallback to mock data for demo
-      console.log('Falling back to mock users')
-      const mockUsers = generateMockUsers()
-      setUsers(mockUsers)
+      // Don't fall back to mock data - show real error
+      setUsers([])
+      toast.error(`Failed to fetch users: ${error.message}`)
     }
   }
 

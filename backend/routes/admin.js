@@ -18,6 +18,15 @@ const validateIncidentUpdate = [
   body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']).withMessage('Invalid priority level')
 ]
 
+// Test endpoint to verify admin routes are working
+router.get('/test', (req, res) => {
+  res.json({
+    message: 'Admin routes are working!',
+    timestamp: new Date().toISOString(),
+    status: 'success'
+  })
+})
+
 // Get admin dashboard statistics
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
