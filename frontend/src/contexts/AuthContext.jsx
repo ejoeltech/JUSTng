@@ -18,8 +18,8 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
-    const checkAuthState = () => {
+    // Check if user is logged in from localStorage and validate token
+    const checkAuthState = async () => {
       const savedUser = localStorage.getItem('just_user')
       const savedRole = localStorage.getItem('just_user_role')
       
@@ -27,11 +27,24 @@ export const AuthProvider = ({ children }) => {
         try {
           const userData = JSON.parse(savedUser)
           
-          // Check if token is still valid (basic check)
+          // Check if token is still valid
           if (userData.accessToken) {
-            setUser(userData)
-            setUserRole(savedRole)
-            setIsAuthenticated(true)
+            // Validate token with server
+            try {
+              const response = await apiService.auth.verifyToken()
+              if (response.success && response.data.valid) {
+                setUser(userData)
+                setUserRole(savedRole)
+                setIsAuthenticated(true)
+              } else {
+                // Token invalid, clear auth state
+                clearAuthState()
+              }
+            } catch (error) {
+              // Token validation failed, clear auth state
+              console.error('Token validation failed:', error)
+              clearAuthState()
+            }
           } else {
             // No valid token, clear auth state
             clearAuthState()
@@ -66,29 +79,32 @@ export const AuthProvider = ({ children }) => {
         inviteCode
       })
 
-      if (result.user) {
+      if (result.success && result.data.user) {
         // Store user data locally with JWT token
         const userData = {
-          id: result.user.id,
-          email: result.user.email,
-          fullName: result.user.fullName,
-          role: result.user.role,
-          status: result.user.status,
-          accessToken: result.accessToken,
-          tokenType: result.tokenType,
-          expiresIn: result.expiresIn
+          id: result.data.user.id,
+          email: result.data.user.email,
+          fullName: result.data.user.fullName,
+          role: result.data.user.role,
+          status: result.data.user.status,
+          accessToken: result.data.accessToken,
+          tokenType: result.data.tokenType,
+          expiresIn: result.data.expiresIn
         }
         
         localStorage.setItem('just_user', JSON.stringify(userData))
-        localStorage.setItem('just_user_role', result.user.role)
+        localStorage.setItem('just_user_role', result.data.user.role)
         
         setUser(userData)
-        setUserRole(result.user.role)
+        setUserRole(result.data.user.role)
         setIsAuthenticated(true)
+        
+        return { data: result.data, error: null }
+      } else {
+        return { data: null, error: new Error(result.error?.message || 'Registration failed') }
       }
-
-      return { data: result, error: null }
     } catch (error) {
+      console.error('Sign up error:', error)
       return { data: null, error }
     } finally {
       setLoading(false)
@@ -104,29 +120,32 @@ export const AuthProvider = ({ children }) => {
         password
       })
 
-      if (result.user) {
+      if (result.success && result.data.user) {
         // Store user data locally with JWT token
         const userData = {
-          id: result.user.id,
-          email: result.user.email,
-          fullName: result.user.fullName,
-          role: result.user.role,
-          status: result.user.status,
-          accessToken: result.accessToken,
-          tokenType: result.tokenType,
-          expiresIn: result.expiresIn
+          id: result.data.user.id,
+          email: result.data.user.email,
+          fullName: result.data.user.fullName,
+          role: result.data.user.role,
+          status: result.data.user.status,
+          accessToken: result.data.accessToken,
+          tokenType: result.data.tokenType,
+          expiresIn: result.data.expiresIn
         }
         
         localStorage.setItem('just_user', JSON.stringify(userData))
-        localStorage.setItem('just_user_role', result.user.role)
+        localStorage.setItem('just_user_role', result.data.user.role)
         
         setUser(userData)
-        setUserRole(result.user.role)
+        setUserRole(result.data.user.role)
         setIsAuthenticated(true)
+        
+        return { data: result.data, error: null }
+      } else {
+        return { data: null, error: new Error(result.error?.message || 'Login failed') }
       }
-
-      return { data: result, error: null }
     } catch (error) {
+      console.error('Sign in error:', error)
       return { data: null, error }
     } finally {
       setLoading(false)
@@ -135,9 +154,13 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      clearAuthState()
+      // Call logout API
+      await apiService.auth.logout()
     } catch (error) {
-      console.error('Error signing out:', error)
+      console.error('Error calling logout API:', error)
+    } finally {
+      // Always clear local state
+      clearAuthState()
     }
   }
 

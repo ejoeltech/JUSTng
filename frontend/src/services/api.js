@@ -216,10 +216,21 @@ class ApiService {
     }
 
     try {
-      const decoded = JSON.parse(atob(token))
+      const decoded = JSON.parse(Buffer.from(token, 'base64').toString())
+      
+      // Check if token is expired
+      const now = Math.floor(Date.now() / 1000)
+      if (decoded.exp && decoded.exp < now) {
+        throw new Error('Token expired')
+      }
+
       return {
-        valid: true,
-        user: decoded,
+        success: true,
+        data: {
+          valid: true,
+          user: decoded,
+          token: decoded
+        },
         message: 'Token valid (local mode)'
       }
     } catch (error) {
@@ -364,7 +375,11 @@ class ApiService {
       body: JSON.stringify(emailData)
     }),
 
-    verifyToken: () => this.request('/auth?action=verify')
+    verifyToken: () => this.request('/auth?action=verify'),
+    
+    logout: () => this.request('/auth?action=logout', {
+      method: 'POST'
+    })
   }
 
   // Incidents endpoints with JWT authentication

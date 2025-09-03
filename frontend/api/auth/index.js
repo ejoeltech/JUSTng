@@ -14,6 +14,11 @@ export default async function handler(req, res) {
     const { action } = req.query
 
     switch (req.method) {
+      case 'GET':
+        if (action === 'verify') {
+          return handleTokenVerify(req, res)
+        }
+        return sendError(res, 405, 'METHOD_NOT_ALLOWED', 'Method not allowed')
       case 'POST':
         return handleAuthAction(req, res, action)
       default:
@@ -37,6 +42,8 @@ async function handleAuthAction(req, res, action) {
         return handleVerifyEmail(req, res)
       case 'resend-verification':
         return handleResendVerification(req, res)
+      case 'logout':
+        return handleLogout(req, res)
       default:
         return sendError(res, 400, 'INVALID_ACTION', 'Invalid action specified')
     }
@@ -100,22 +107,45 @@ async function handleLogin(req, res) {
       return sendError(res, 400, 'WEAK_PASSWORD', 'Password must be at least 6 characters long')
     }
 
-    // For testing purposes, accept any login
-    // TODO: Replace with actual database authentication
-    const userData = {
-      id: 'test-user-' + Date.now(),
-      email: email,
-      fullName: 'Test User',
-      role: 'user',
-      status: 'active',
-      lastLogin: new Date().toISOString()
+    // Get users from local storage (simulate database)
+    const existingUsers = JSON.parse(process.env.LOCAL_USERS || '[]')
+    const user = existingUsers.find(u => u.email === email && u.password === password)
+
+    if (!user) {
+      return sendError(res, 401, 'INVALID_CREDENTIALS', 'Invalid email or password')
     }
 
-    const accessToken = 'test-token-' + Date.now()
+    // Check if user is active
+    if (user.status !== 'active') {
+      return sendError(res, 403, 'ACCOUNT_INACTIVE', 'Your account is not active. Please contact support.')
+    }
+
+    // Generate JWT-like token
+    const tokenPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+    }
+    
+    const accessToken = Buffer.from(JSON.stringify(tokenPayload)).toString('base64')
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user
+
+    // Update last login
+    user.lastLogin = new Date().toISOString()
+    const userIndex = existingUsers.findIndex(u => u.id === user.id)
+    if (userIndex !== -1) {
+      existingUsers[userIndex] = user
+      process.env.LOCAL_USERS = JSON.stringify(existingUsers)
+    }
 
     return sendSuccess(res, {
-      user: userData,
+      user: userWithoutPassword,
       accessToken: accessToken,
+      tokenType: 'Bearer',
       expiresIn: '24h'
     }, 'Login successful')
 
@@ -128,7 +158,7 @@ async function handleLogin(req, res) {
 // Improved Registration with better error handling
 async function handleRegister(req, res) {
   try {
-    const { email, password, fullName, phone } = req.body
+    const { email, password, fullName, phone, inviteCode } = req.body
 
     // Comprehensive validation
     if (!email || !password || !fullName) {
@@ -165,20 +195,50 @@ async function handleRegister(req, res) {
         'Please enter a valid phone number')
     }
 
-    // For testing purposes, always succeed
-    // TODO: Replace with actual database registration
+    // Invite code validation
+    const validInviteCodes = ['JUST2024', 'ADMIN2024', 'POLICE001']
+    if (!inviteCode || !validInviteCodes.includes(inviteCode)) {
+      return sendError(res, 400, 'INVALID_INVITE_CODE', 
+        'Invalid invite code. Available codes: JUST2024, ADMIN2024, POLICE001')
+    }
+
+    // Determine role based on invite code
+    let role = 'user'
+    if (inviteCode === 'ADMIN2024') role = 'admin'
+    if (inviteCode === 'POLICE001') role = 'police'
+
+    // Check if user already exists (simulate database check)
+    const existingUsers = JSON.parse(process.env.LOCAL_USERS || '[]')
+    if (existingUsers.find(u => u.email === email)) {
+      return sendError(res, 409, 'USER_EXISTS', 'User with this email already exists')
+    }
+
+    // Create user data
     const userData = {
-      id: 'new-user-' + Date.now(),
+      id: 'user-' + Date.now(),
       email: email,
       fullName: fullName.trim(),
       phone: phone || null,
-      role: 'user',
+      role: role,
       status: 'active',
-      emailVerified: false,
+      emailVerified: true, // For testing, auto-verify
       createdAt: new Date().toISOString()
     }
 
-    const accessToken = 'test-token-' + Date.now()
+    // Generate JWT-like token
+    const tokenPayload = {
+      userId: userData.id,
+      email: userData.email,
+      role: userData.role,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+    }
+    
+    const accessToken = Buffer.from(JSON.stringify(tokenPayload)).toString('base64')
+
+    // Store user locally (simulate database)
+    existingUsers.push({ ...userData, password: password }) // In real app, hash password
+    process.env.LOCAL_USERS = JSON.stringify(existingUsers)
 
     return res.status(201).json({
       success: true,
@@ -186,6 +246,7 @@ async function handleRegister(req, res) {
       data: {
         user: userData,
         accessToken: accessToken,
+        tokenType: 'Bearer',
         expiresIn: '24h'
       },
       timestamp: new Date().toISOString()
@@ -228,5 +289,69 @@ async function handleResendVerification(req, res) {
   } catch (error) {
     console.error('Resend verification error:', error)
     return sendError(res, 500, 'RESEND_FAILED', 'Failed to resend verification email')
+  }
+}
+
+// Token verification endpoint
+async function handleTokenVerify(req, res) {
+  try {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1] // Bearer TOKEN
+
+    if (!token) {
+      return sendError(res, 401, 'NO_TOKEN', 'No token provided')
+    }
+
+    try {
+      // Decode the base64 token
+      const tokenPayload = JSON.parse(Buffer.from(token, 'base64').toString())
+      
+      // Check if token is expired
+      const now = Math.floor(Date.now() / 1000)
+      if (tokenPayload.exp && tokenPayload.exp < now) {
+        return sendError(res, 401, 'TOKEN_EXPIRED', 'Token has expired')
+      }
+
+      // Get user from local storage
+      const existingUsers = JSON.parse(process.env.LOCAL_USERS || '[]')
+      const user = existingUsers.find(u => u.id === tokenPayload.userId)
+
+      if (!user) {
+        return sendError(res, 401, 'USER_NOT_FOUND', 'User not found')
+      }
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user
+
+      return sendSuccess(res, {
+        valid: true,
+        user: userWithoutPassword,
+        token: tokenPayload
+      }, 'Token is valid')
+
+    } catch (decodeError) {
+      return sendError(res, 401, 'INVALID_TOKEN', 'Invalid token format')
+    }
+
+  } catch (error) {
+    console.error('Token verification error:', error)
+    return sendError(res, 500, 'VERIFICATION_FAILED', 'Token verification failed')
+  }
+}
+
+// Logout endpoint
+async function handleLogout(req, res) {
+  try {
+    // In a real application, you would:
+    // 1. Add token to blacklist
+    // 2. Clear server-side session
+    // 3. Log the logout event
+    
+    return sendSuccess(res, { 
+      loggedOut: true 
+    }, 'Logout successful')
+  } catch (error) {
+    console.error('Logout error:', error)
+    return sendError(res, 500, 'LOGOUT_FAILED', 'Logout failed')
   }
 }
