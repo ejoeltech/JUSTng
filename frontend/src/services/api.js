@@ -23,10 +23,7 @@ class ApiService {
 
   // Generic request method with JWT authentication
   async request(endpoint, options = {}) {
-    // Check if this is an auth request and handle locally if backend unavailable
-    if (endpoint.includes('/auth')) {
-      return this.handleAuthLocally(endpoint, options)
-    }
+    // Always try the API first, no local fallback for auth
 
     const token = this.getAuthToken()
     
@@ -62,7 +59,9 @@ class ApiService {
           return this.handleLocalFallback(endpoint, options)
         }
         
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        // Extract error message from API response
+        const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`
+        throw new Error(errorMessage)
       }
 
       return await response.json()
@@ -80,7 +79,8 @@ class ApiService {
 
   // Check if endpoint can be handled locally
   canHandleLocally(endpoint) {
-    return endpoint.includes('/auth') || endpoint.includes('/incidents')
+    // Only handle incidents locally, not auth endpoints
+    return endpoint.includes('/incidents')
   }
 
   // Handle auth requests locally when backend is unavailable

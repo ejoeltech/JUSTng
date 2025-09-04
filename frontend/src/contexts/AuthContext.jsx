@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }) => {
         inviteCode
       })
 
-      if (result.success && result.data.user) {
+      if (result.success && result.data && result.data.user) {
         // Store user data locally with JWT token
         const userData = {
           id: result.data.user.id,
@@ -101,7 +101,9 @@ export const AuthProvider = ({ children }) => {
         
         return { data: result.data, error: null }
       } else {
-        return { data: null, error: new Error(result.error?.message || 'Registration failed') }
+        // Handle API error response
+        const errorMessage = result.error?.message || result.message || 'Registration failed'
+        return { data: null, error: new Error(errorMessage) }
       }
     } catch (error) {
       console.error('Sign up error:', error)
@@ -120,7 +122,7 @@ export const AuthProvider = ({ children }) => {
         password
       })
 
-      if (result.success && result.data.user) {
+      if (result.success && result.data && result.data.user) {
         // Store user data locally with JWT token
         const userData = {
           id: result.data.user.id,
@@ -142,7 +144,9 @@ export const AuthProvider = ({ children }) => {
         
         return { data: result.data, error: null }
       } else {
-        return { data: null, error: new Error(result.error?.message || 'Login failed') }
+        // Handle API error response
+        const errorMessage = result.error?.message || result.message || 'Login failed'
+        return { data: null, error: new Error(errorMessage) }
       }
     } catch (error) {
       console.error('Sign in error:', error)
